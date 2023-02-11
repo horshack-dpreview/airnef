@@ -7,7 +7,6 @@
 # Copyright (C) 2015, testcams.com
 #
 # This module is licensed under GPL v3: http://www.gnu.org/licenses/gpl-3.0.html
-
 #
 #############################################################################
 #
@@ -21,11 +20,13 @@ import sys
 #
 
 # logging level flags
-APPLOGF_LEVEL_ERROR			= (0x00000001<<0)
-APPLOGF_LEVEL_INFORMATIONAL	= (0x00000001<<1)
-APPLOGF_LEVEL_WARNING		= (0x00000001<<2)
-APPLOGF_LEVEL_VERBOSE		= (0x00000001<<3)
-APPLOGF_LEVEL_DEBUG			= (0x00000001<<4)
+APPLOGF_LEVEL_ERROR				= (0x00000001<<0)
+APPLOGF_LEVEL_INFORMATIONAL		= (0x00000001<<1)
+APPLOGF_LEVEL_WARNING			= (0x00000001<<2)
+APPLOGF_LEVEL_VERBOSE			= (0x00000001<<3)
+APPLOGF_LEVEL_DEBUG				= (0x00000001<<4)
+APPLOGF_LEVEL_MASK				= 0x000000FF
+APPLOGF_DONT_WRITE_TO_CONSOLE	= (0x00000001<<8)
 
 #
 # global variables
@@ -76,12 +77,13 @@ def applog_shutdown():
  #
  # Log message with specified level
  #
-def applog(str, level=APPLOGF_LEVEL_INFORMATIONAL):
-	if (gLoggingFlags & level):
-		if level & APPLOGF_LEVEL_ERROR:
-			print(str, file=sys.stderr)
-		else:
-			print(str)
+def applog(str, flags=APPLOGF_LEVEL_INFORMATIONAL):
+	if gLoggingFlags & (flags & APPLOGF_LEVEL_MASK):
+		if not (flags & APPLOGF_DONT_WRITE_TO_CONSOLE):
+			if flags & APPLOGF_LEVEL_ERROR:
+				print(str, file=sys.stderr)
+			else:
+				print(str)
 		# redirect output to log file(s)		
 		if gFileSessionLog:
 			print(str, file=gFileSessionLog)
@@ -110,6 +112,8 @@ def applog_d(s):
 #
 def isDebugLog():
 	return (gLoggingFlags & APPLOGF_LEVEL_DEBUG)
+def isVerboseLog():
+	return (gLoggingFlags & APPLOGF_LEVEL_VERBOSE)
 
 #
 # console writing function wrappers

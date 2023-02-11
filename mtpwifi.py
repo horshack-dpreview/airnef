@@ -42,8 +42,9 @@ SOCKET_TIMEOUT_READS_WRITES_DEFAULT		= 5		# we configure the socket to time out 
 # types of low-level PTP-TCP/IP commands that can be send
 # from Host -> Camera
 #
-MTP_TCPIP_REQ_HOST_INTRODUCTION		= 0x01	# "host introduction" is arbtirary name - don't know what undocumented PTP-TCP/IP spec calls it
+MTP_TCPIP_REQ_INIT_CMD_REQ			= 0x01	# "host introduction" is arbtirary name - don't know what undocumented PTP-TCP/IP spec calls it
 MTP_TCPIP_REQ_INIT_EVENTS			= 0x03	# "init events" is arbtirary name - don't know what undocumented PTP-TCP/IP spec calls it
+MTP_TCPIP_REQ_PROBE					= 0x0d  # "probe request"
 
 #
 # identifiers for types of payloads that can be sent
@@ -74,14 +75,20 @@ class MtpOpExecFailureException(Exception):
 		self.totalPayloadSizeIndicated = totalPayloadSizeIndicated
 		
 class MtpProtocolException(Exception):
-		def __init__(self, message):
-			Exception.__init__(self, message)
+	def __init__(self, message):
+		Exception.__init__(self, message)
+			
+class MtpConnectionFailureException(Exception):
+	def __init__(self, message):
+		Exception.__init__(self, message)
 
 #
 # global data
 #
+gTransferInterruptedBySIGINT = False
 g_PartialRxDataPayloadData = None
 g_PartialRxDataPayloadData_SizeIndicated = None
+
 
 #
 # Iterator that generates a transaction ID for MTP-TCP/IP requests,
@@ -125,14 +132,14 @@ def rxPayload(s, rxProgressFunc=None):
 		totalPayloadBytes = totalBytesIncludingPreamble-4
 
 		# receive the payload
-		while (payloadBytesReceived < totalPayloadBytes):
+		while (payloadBytesReceived < totalPayloadBytes):		
 			data += s.recv(totalPayloadBytes - payloadBytesReceived)
 			if not payloadId and len(data) >= 4:
 				# if we have not received the payload ID and we have at least 4 bytes of data (first four bytes has payload ID)
 				(payloadId,) = struct.unpack('<I', data[0:4])
 			payloadBytesReceived = len(data)
-			if rxProgressFunc and (payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayload or payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayloadLast):
-				rxProgressFunc(payloadBytesReceived)
+			if rxProgressFunc and payloadBytesReceived >= 8 and (payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayload or payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayloadLast):
+				rxProgressFunc(payloadBytesReceived - 8) # -8 to exclude header data from count
 				
 		# return the data received [not including 4-byte size preamble]
 		return data
@@ -146,6 +153,7 @@ def rxPayload(s, rxProgressFunc=None):
 			g_PartialRxDataPayloadData = data
 			g_PartialRxDataPayloadData_SizeIndicated = totalPayloadBytes
 		raise # let upper levels print out contents of actual socket.error exception
+
 		
 #
 # Transmits request and receives response payload(s)
@@ -153,6 +161,7 @@ def rxPayload(s, rxProgressFunc=None):
 def txrxdata(s, data):
 	txdata(s, data)
 	return rxPayload(s)
+	
 
 #
 # perform an MTP operation/command
@@ -214,7 +223,15 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 		MTP_DATA_DIRECTION_NONE : MTP_TCPIP_CmdReq_DataDir_CameraToHost_or_None,
 		MTP_DATA_DIRECTION_CAMERA_TO_HOST : MTP_TCPIP_CmdReq_DataDir_CameraToHost_or_None,
 		MTP_DATA_DIRECTION_HOST_TO_CAMERA : MTP_TCPIP_CmdReq_DataDir_HostToCamera,
-	}	
+	}
+	
+	global gTransferInterruptedBySIGINT
+	if gTransferInterruptedBySIGINT:
+		#
+		# if a previous invocation was interrupted we can't perform any more requests during
+		# this session because the camera may still be sending us data from the interrupt request
+		#
+		raise MtpProtocolException("Previous transfer interrupted - session in unknown state")
 
 	dataReceivedSoFar = six.binary_type()
 	dataDirection = getMtpOpDataDirection(mtpOp)
@@ -232,10 +249,10 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 	#
 	if dataDirection == MTP_DATA_DIRECTION_HOST_TO_CAMERA:
 		applog_d("execMtpOp: Sending MTP_TCPIP_PAYLOAD_ID_DataStart")
-		txdata(s, struct.pack('<IIII', MTP_TCPIP_PAYLOAD_ID_DataStart, txTransactionId, len(dataToSend), 0))				
+		txdata(s, struct.pack('<IIII', MTP_TCPIP_PAYLOAD_ID_DataStart, txTransactionId, len(dataToSend), 0))
 		applog_d("execMtpOp: Sending MTP_TCPIP_PAYLOAD_ID_DataPayloadLast:")
 		txdata(s, struct.pack('<II', MTP_TCPIP_PAYLOAD_ID_DataPayloadLast, txTransactionId) + dataToSend)
-
+			
 	#
 	# loop, processing inbound data payloads (MTP_DATA_DIRECTION_CAMERA_TO_HOST) and
 	# the final cmd-response payload
@@ -270,10 +287,10 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 			elif payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayload or payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayloadLast:
 
 				if isDebugLog():
-					if mtpOp == MTP_OP_GetObject or mtpOp == MTP_OP_GetPartialObject:
+					if mtpOp == MTP_OP_GetObject or mtpOp == MTP_OP_GetPartialObject or mtpOp == MTP_OP_GetLargeThumb or mtpOp == MTP_OP_GetThumb:
 						maxBytesToDump = 64
 					else:
-						maxBytesToDump = sys.maxsize
+						maxBytesToDump = 4096
 					applog_d("execMtpOp: {:s} - Data payload [ID {:x}] (0x{:08x} bytes):".format(getMtpOpDesc(mtpOp), payloadId, len(data)))
 					applog_d(strutil.hexdump(data[:min(len(data), maxBytesToDump)]))
 
@@ -322,9 +339,6 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 				raise MtpProtocolException("Camera Networking Error: {:s}: Unrecognized payload ID (0x{:08x})".format(getMtpOpDesc(mtpOp), payloadId))
 
 		except (socket.error) as e:
-			if (not g_PartialRxDataPayloadData) and (not dataReceivedSoFar):
-				raise
-			else:
 				# we received at least some data payload data before the error
 				if g_PartialRxDataPayloadData:
 					data = g_PartialRxDataPayloadData
@@ -345,50 +359,59 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 				raise MtpOpExecFailureException(MTP_RESP_COMMUNICATION_ERROR, \
 					"{:s}: Socket error, partial data received - 0x{:x} of 0x{:x} bytes for specific payload, 0x{:x} of 0x{:x} of total data bytes expected. Error: {:s}".\
 						format(getMtpOpDesc(mtpOp), bytesReceivedLastPayload, lastPayloadExpectedSize, len(dataReceivedSoFar), totalDataTransferSizeBytesExpectedAcrossAllPayloads, str(e)),
-						dataReceivedSoFar, totalDataTransferSizeBytesExpectedAcrossAllPayloads)
-										
+						dataReceivedSoFar, totalDataTransferSizeBytesExpectedAcrossAllPayloads)										
+
+		except KeyboardInterrupt as e: # <ctrl-c> pressed			
+			gTransferInterruptedBySIGINT = True
+			applog_d("gTransferInterruptedBySIGINT set")
+			raise
+						
 			
 #
 # sends host introduction to camera (not sure what the spec calls this since it's not publicly documented.
 # this is the first operation performed after opening a TCP/IP socket with the camera. the camera returns
 # the session identifier that we're to use as the session ID when performing a later MTP_OP_OpenSession
 #
-def sendHostIntroduction(s):
-	applog_d("sendHostIntroduction(): Sending introduction")
-	cmdtype=struct.pack('<I', MTP_TCPIP_REQ_HOST_INTRODUCTION)
-	guid=struct.pack('<QQ',0x7766554433221100,0xffeeddccbbaa9988) 
-	compname = bytearray('airnef\x00', 'utf-8')
-	computername = bytearray()
-	for number in range(len(compname)):
-		computername = computername + struct.pack('<BB', compname[number], 0x00)
+def sendInitCmdReq(s, guidHighLowTuple, hostNameStr, hostVerInt):
+	applog_d("sendInitCmdReq(): Sending MTP_TCPIP_REQ_INIT_CMD_REQ")
+	(guidHigh, guidLow) = guidHighLowTuple
+	cmdtype=struct.pack('<I', MTP_TCPIP_REQ_INIT_CMD_REQ)
+	guid = struct.pack('<QQ', guidHigh, guidLow) 
+	hostNameUtf16ByteArray = strutil.stringToUtf16ByteArray(hostNameStr, True)
 	try:
-		rxdata = txrxdata(s, cmdtype + guid + computername+struct.pack('<I', 0x01))
+		rxdata = txrxdata(s, cmdtype + guid + hostNameUtf16ByteArray + struct.pack('<I', hostVerInt))
 		if isDebugLog():
-			applog_d("sendHostIntroduction() response:")
+			applog_d("sendInitCmdReq() response:")
 			applog_d(strutil.hexdump(rxdata))
 		(wordResponse,) = struct.unpack('<I',rxdata[:4])
 		if wordResponse == 0x2 and len(rxdata) >= 8:	# make sure first 32-bit word is equal to a value of 0x2 ("ACK") and has 4-byte session ID after
 			return rxdata[4:]
-		else:			
-			raise MtpProtocolException("sendHostIntroduction(): Bad response/ACK - expected 0x02, got 0x{:x}".format(wordResponse))
+		else:
+			raise MtpProtocolException(\
+				"\nThe camera is rejecting the unique identifier (GUID) that airnef is\n"\
+				"presenting. Some cameras including most Canon's associate a given Wifi\n"\
+				"configuration to a particular remote application's GUID. If you have used a\n"\
+				"remote application other than airnef with this camera (or a different\n"\
+				"version of airnef) then you may need to re-create the WiFi configuration\n"\
+				"on the camera to allow it to be associated with airnef's GUID.")
 	except socket.error as error:
 		#
 		# in my testing I found situations where my J4 enter a state where it would accept the TCP/IP
 		# connection but then not respond to any MTP discovery/command requests. the only way to
 		# recover from this condition was to cycle the WiFi enable on the camera or cycle its power
 		#
-		applog_e("Camera is accepting connections but failing to negotiate a session. You may\nneed to turn the camera's WiFi off and of or cycle the camera's power to\nrecover from this. You can leave airnefcmd running while doing this.")
-		raise # let upper levels print out contents of actual socket.error exception
+		applog_e("\nCamera is accepting connections but failing to negotiate a session. You may\nneed to turn the camera's WiFi off and of or cycle the camera's power to\nrecover. You can leave airnefcmd running while doing this.")
+		sys.exit(errno.ETIMEDOUT)
 
 #
-# analog of sendHostIntroduction() but for the TCP/IP sockets used for events and
+# analog of sendInitCmdReq() but for the TCP/IP sockets used for events and
 # no session identifier is returned
 #
-def sendInitEvents(s, sessionIdData):
-	applog_d("sendInitEvents(): Sending init_events")
-	cmdtype = struct.pack('<I', MTP_TCPIP_REQ_INIT_EVENTS)
+def sendInitEvents(s, sessionId):
+	applog_d("sendInitEvents(): Sending MTP_TCPIP_REQ_INIT_EVENTS")
+	cmdtype = struct.pack('<II', MTP_TCPIP_REQ_INIT_EVENTS, sessionId)
 	try:
-		rxdata = txrxdata(s, cmdtype + sessionIdData)
+		rxdata = txrxdata(s, cmdtype)
 		if isDebugLog():
 			applog_d("sendInitEvents() response:")
 			applog_d(strutil.hexdump(rxdata))
@@ -397,7 +420,25 @@ def sendInitEvents(s, sessionIdData):
 			raise MtpProtocolException("sendInitEvents(): Bad response/ACK - expected 0x04, got 0x{:x}".format(wordResponse))
 	except socket.error as error:
 		raise
+		
+#
+# sends a probe request. this should be done on the events socket
+#		
+def sendProbeRequest(s):
+	applog_d("sendProbeRequest(): Sending probe request")
+	cmdtype = struct.pack('<I', MTP_TCPIP_REQ_PROBE)
+	try:
+		rxdata = txrxdata(s, cmdtype)
+		if isDebugLog():
+			applog_d("sendProbeRequest() response:")
+			applog_d(strutil.hexdump(rxdata))
+		(wordResponse,) = struct.unpack('<I',rxdata[:4])
+		if wordResponse != 0xe:	# make sure first 32-bit word is equal to a value of 0xe ("probe response")
+			raise MtpProtocolException("sendProbeRequest(): Bad response/ACK - expected 0x0e, got 0x{:x}".format(wordResponse))
+	except socket.error as error:
+		raise		
 
+		
 #
 # opens TCP/IP socket to camera. this is the first step in communication
 #		
@@ -414,21 +455,23 @@ def openConnection(ipAddrStr, verbose, connectionTimeoutSecs=SOCKET_TIMEOUT_CONN
 		consoleClearLine()
 		if s:
 			s.close()
-		applog_e(">> Connection Failed <<\n")
+		connectErrMsg = ">> Connection Failed <<\n\n"
 		if type(error) == socket.timeout:
-				applog_e(	"There was no response at {:s}. Please confirm that your camera's\n"			\
-							"Wifi is enabled and that you have specified the correct IP address."			\
-							.format(ipAddrStr))
+			connectErrMsg += \
+				"There was no response at {:s}. Please confirm that your camera's\n"	\
+				"Wifi is enabled and that you have specified the correct IP address."	\
+				.format(ipAddrStr)
 		else:
 			if error.errno == errno.ECONNREFUSED:
-				applog_e(	"A device at {:s} responded but the connection was refused.\n"					\
-							"This is likely because you are connected to a normal Wifi network instead\n" 	\
-							"of your camera's network. Please confirm that your camera's Wifi is enabled\n"	\
-							"and that your computer is connected to its network."							\
-							.format(ipAddrStr))
+				connectErrMsg += \
+					"A device at {:s} responded but the connection was refused.\n"					\
+					"This is likely because you are connected to a normal Wifi network instead\n" 	\
+					"of your camera's network. Please confirm that your camera's Wifi is enabled\n"	\
+					"and that your computer is connected to its network."							\
+					.format(ipAddrStr)
 			else:
-				applog_e("Could not open socket: " + str(error))
-		sys.exit(error.errno)
+				connectErrMsg += "Could not open socket: {:s}".format(str(error))
+		raise MtpConnectionFailureException(connectErrMsg)
 	# connection successful
 	consoleClearLine()
 	if (verbose):

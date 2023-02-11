@@ -13,6 +13,12 @@
 # Icon courtesy of Paomedia at https://www.iconfinder.com/icons/285680/camera_icon,
 #     licensed under Creative Commons (Attribution 3.0 Unported)
 #
+# note001 - The Tkinter implementation on OSX has a behavior/bug where it doesn't vertically
+# center the image specified for a button if the button also has text. (it horizontally centers
+# but not vertically). This makes the button look ugly for ipady because all the padding
+# goes to the bottom instead of being evenly distributed. I work arond this by massaging
+# the padding when we're running on iOSX
+#
 #############################################################################
 #
 
@@ -37,27 +43,32 @@ else:
 	from six.moves.tkinter_font import *
 	from six.moves.tkinter_scrolledtext import *
 	from six.moves import tkinter_ttk as ttk
-	from six.moves import tkinter_tkfiledialog
-	from six.moves import tkinter_messagebox
+	from six.moves import tkinter_tkfiledialog as tkFileDialog
+	from six.moves import tkinter_messagebox as tkMessageBox
 import time
 import subprocess
 import os
 import errno
 import platform
-import shlex
 import json
 import datetime
 import signal
-
+import sys
 
 #
 # constants
 #
-AIRNEF_APP_VERSION	= "1.00"
+AIRNEF_APP_VERSION	= "1.1"
 buttonBgColor = "#E8E8E8"
 mainBgColor = "#E0E0E0"
 toolbarColor = "#B0B0B0"
 LoggingLevelChoices = ['normal', 'verbose', 'debug']
+RealtimeTransferUserReadableChoices = [ 'none - exit after normal download', 'normal download then realtime', 'only realtime download' ]
+RealtimeTransferUserReadableChoicesToAirnefCmdOtion = { # converts a RealtimeTransferUserReadableChoices choice to the equivalent airnefcmd command line option
+	'none - exit after normal download' : '--realtimedownload disabled',
+	'normal download then realtime' : '--realtimedownload afternormal',
+	'only realtime download' : '--realtimedownload only'
+}
 IfExistsUserReadableChoices = ['generate unique filename', 'overwrite file', 'skip file', 'prompt for each file', 'exit']
 IfExistsUserReadableChoicesToAirnefCmdOption = { # converts a IfExistsUserReadableChoices choice to the equivalent airnefcmd command line option
 	'generate unique filename' : '--ifexists uniquename',
@@ -72,11 +83,12 @@ ActionsUserReadableChoicesToAirnefCmdOption = { # converts a ActionsUserReadable
 	'small thumbnails' : '--action getsmallthumbs',
 	'large thumbnails' : '--action getlargethumbs',
 }
-CardSlotUserReadableChoices = ['first card found', 'card in slot #1', 'card in slot #2']
+CardSlotUserReadableChoices = ['first card found', 'card in slot #1', 'card in slot #2', 'both cards (not recommended)']
 CardSlotUserReadableChoicesToAirnefCmdOption = { # converts a CardSlotUserReadableChoices choice to the equivalent airnefcmd command line option
 	'first card found' : '--slot firstfound',
 	'card in slot #1' : '--slot first',
-	'card in slot #2' : '--slot second'
+	'card in slot #2' : '--slot second',
+	'both cards (not recommended)' : '--slot both'
 }
 TransferOrderReadableChoices = [ 'oldest images/movies first', 'newest images/movies first']
 TransferOrderReadableChoicesToAirnefCmdOption = { #converts a TransferOrderReadableChoices choice to the equivalent airnefcmd command line option
@@ -91,10 +103,10 @@ DownloadDateChoices = [ 'All Dates', 'today', 'yesterday', 'past week', 'past mo
 class GlobalVarsStruct:
 	def __init__(self):
 		self.isWin32 = None			# True if we're running on a Windows platform
-		self.isOSX = None
+		self.isOSX = None			# True if we're runnong on an OSX platform
 		self.isFrozen = None		# True if we're running in a pyintaller frozen environment (ie, built as an executable)
 		self.appDir = None			# directory where script is located. this path is used to store all metadata files, in case script is run in different working directory
-		self.appDataDir = None		# directory where we keep app metadata (self.appDir + "appdata")
+		self.appDataDir = None		# directory where we keep app metadata
 		self.appResourceDir = None	# directory where we keep app resources (read-only files needed by app, self.appDir + "resouce")
 		self.app = None				# reference to main Application class
 
@@ -177,7 +189,7 @@ def osxFrozenWorkaround_LaunchAirnefcmdWrapper(argStr):
 	# write options to temporary file
 	# 
 	fo = open(FILENAME_CMD_OPTS, 'w')
-	argList = shlex.split(argStr)
+	argList = createArgListFromArgStr(argStr)
 	for arg in argList:
 		fo.write(arg + "\n")
 	fo.close()
@@ -209,7 +221,14 @@ def osxFrozenWorkaround_LaunchAirnefcmdWrapper(argStr):
 	osxFrozenWorkaround_waitWrapperCommunicationFileExist(FILENAME_NOTIFY_DONE, processIdCheckTermination=processIdWrapper)
 
 	return 0 
+
 	
+#
+# creates a list of arguments from an argument string, honoring quoted args as a single argument
+#	
+def createArgListFromArgStr(argStr):
+	return [x.strip('"') for x in re.split('( |".*?")', argStr) if x.strip()]
+
 
 #
 # spanws airnefcmd with specified arguments. returns errno
@@ -226,15 +245,16 @@ def launchAirnefcmd(argStr):
 		root.withdraw() # make our main GUI window invisible while running airnefcmd
 
 		process = None
+		argList = createArgListFromArgStr(argStr)
 		if g.isFrozen:
 			if g.isOSX:
 				_errno = osxFrozenWorkaround_LaunchAirnefcmdWrapper(argStr)
 			elif g.isWin32:
-				process = subprocess.Popen([os.path.join(g.appDir, 'airnefcmd.exe')] + shlex.split(argStr))	# note: using shlex.split() instead of string.split to handle quoted filenames
+				process = subprocess.Popen([os.path.join(g.appDir, 'airnefcmd.exe')] + argList)
 			else: # linux
-				process = subprocess.Popen(['xterm', '+hold', '-e', os.path.join(g.appDir, 'airnefcmd')] + shlex.split(argStr))	# note: using shlex.split() instead of string.split to handle quoted filenames 
+				process = subprocess.Popen(['xterm', '+hold', '-e', os.path.join(g.appDir, 'airnefcmd')] + argList)
 		else:
-			process = subprocess.Popen(['python', os.path.join(g.appDir, 'airnefcmd.py')] + shlex.split(argStr))	# note: using shlex.split() instead of string.split to handle quoted filenames
+			process = subprocess.Popen(['python', os.path.join(g.appDir, 'airnefcmd.py')] + argList)
 
 		if process:
 			_errno = process.wait()
@@ -338,8 +358,10 @@ def displayAirnefcmdOutput():
 	buttonFrame.pack(side=BOTTOM)
 	scrolledText.pack(side=TOP, fill=BOTH, expand=1) # packed last to give other controls real estate in frame
 
-	# insert report into text control
-	scrolledText.insert('end', reportContents)
+	# insert report into text control and move cursor to the end
+	scrolledText.insert(END, reportContents)
+	scrolledText.see(END)
+	
 	
 	#
 	# present top-level window as modal and wait for it to be dismissed
@@ -386,6 +408,7 @@ class Application(Frame):
 	# self.toolbarFrame
 	# self.wizard_BackNavigationToolbarButton
 	# self.toolbar_IpAdressEntry
+	# self.toolbar_RealtimeDownloadComboBox
 	# self.toolbar_LoggingLevelComboBox
     #
 	# self.contentFrame
@@ -403,18 +426,17 @@ class Application(Frame):
 	# self.wizard_2_0_CustomDateRangeEndEntry
 	# self.wizard_2_0_FileExt_NEF_IntVar
 	# self.wizard_2_0_FileExt_JPG_IntVar
-	# self.wizard_2_0_FileExt_TIF_IntVar
 	# self.wizard_2_0_FileExt_MOV_IntVar
 	# self.wizard_2_0_FileExt_CR2_IntVar	
+	# self.wizard_2_0_FileExt_ARW_IntVar	
 	# self.wizard_2_0_FileExtMoreEntry
 	# self.wizard_2_0_AdditionalArgsEntry
 	
 
 	def __init__(self, master):
 	
-		Frame.__init__(self, master, bg="yellow")
+		Frame.__init__(self, master, bg=mainBgColor)
 
-		root.geometry('900x420')
 		root.title("airnef - Wirelessly download images and movies from your Nikon Camera")
 		setFrameIcon(root)
 		
@@ -431,9 +453,12 @@ class Application(Frame):
 		
 		# toolbar
 		self.toolbarFrame = Frame(self, bg=toolbarColor)
+		
+		# toolbar - Last Transfer Report button
 		button = Button(self.toolbarFrame, text="Last Transfer Report", command=lambda : self.toolbarClick('transfer_report'))
 		button.pack(side=LEFT, padx=10, pady=5, ipadx=10)
 		
+		# toolbar - IP address label and entry field
 		optionsFrame = Frame(self.toolbarFrame, bg=toolbarColor)
 		label = Label(optionsFrame, text="Camera IP Address:", bg=toolbarColor)
 		label.grid(column=0, row=0, sticky=E)
@@ -441,26 +466,40 @@ class Application(Frame):
 		if 'ip_address' in self.appConfigDict:
 			entry.insert(0, self.appConfigDict['ip_address'])
 		else:
-			entry.insert(0, "192.168.1.1")		
-		self.toolbar_IpAdressEntry = entry
+			entry.insert(0, "192.168.1.1")
 		entry.grid(column=1, row=0, sticky=W, padx=2)
+		self.toolbar_IpAdressEntry = entry
+		
+		# toolbar - Real-time download label and combo box		
+		label = Label(optionsFrame, text="Realtime download:", anchor=E, bg=toolbarColor)
+		label.grid(column=2, row=0, sticky=W, ipadx=2)
+		comboBox = ttk.Combobox(optionsFrame, values=RealtimeTransferUserReadableChoices, state='readonly', width=30)
+		if 'realtime_download_choice' in self.appConfigDict:
+			comboBox.current(comboBox['values'].index (self.appConfigDict['realtime_download_choice']))
+		else:
+			comboBox.current(0)
+		comboBox.grid(column=3, row=0, sticky=W)
+		self.toolbar_RealtimeDownloadComboBox = comboBox
+
+		# toolbar - Logging level label and combo box		
 		label = Label(optionsFrame, text="Logging:", bg=toolbarColor)
-		label.grid(column=2, row=0, sticky=E)
-		comboBox = ttk.Combobox(optionsFrame, values=LoggingLevelChoices, state='readonly', width=10)
+		label.grid(column=4, row=0, sticky=E, padx=2)
+		comboBox = ttk.Combobox(optionsFrame, values=LoggingLevelChoices, state='readonly', width=8)
 		if 'logging_level_choice' in self.appConfigDict:
 			comboBox.current(comboBox['values'].index (self.appConfigDict['logging_level_choice']))
 		else:
 			comboBox.current(0)
-		comboBox.grid(column=3, row=0, sticky=W)
+		comboBox.grid(column=5, row=0, sticky=W, padx=10)
 		self.toolbar_LoggingLevelComboBox = comboBox
-		optionsFrame.pack(side=LEFT, padx=5, pady=5)
+		
+		optionsFrame.pack(side=LEFT, padx=0, pady=5)
 			
 		self.wizard_BackNavigationToolbarButton = None
 		self.toolbarFrame.pack(side=TOP, fill=X)
 		
 		# label between toolbar and main window area
 		self.contentAreaLabel = Label(self, text="", font=self.fontWizardQuestion14, bg=mainBgColor)
-		self.contentAreaLabel.pack(side=TOP, fill=X, ipady=10)
+		self.contentAreaLabel.pack(side=TOP, fill=X, pady=10)
 		
 		# main window area
 		self.contentFrame = Frame(self, bg=mainBgColor)
@@ -468,7 +507,7 @@ class Application(Frame):
 		# first scene
 		self.setContent_Wizard_0()
 		self.pack(fill=BOTH, expand=1)
-		
+						
 		bringAppToFront()
 				
 	def loadAppConfig(self):
@@ -550,13 +589,14 @@ class Application(Frame):
 		# help menu
 		helpmenu = Menu(menubar, tearoff=0)
 		helpmenu.add_command(label="About", command=lambda : tkMessageBox.showinfo("airnef", \
-			"airnef - Version {:s}\n\nApplication is licensed under GPL v3\n\n"\
+			"airnef - Version {:s}\n\nRunning under Python Version {:d}.{:d}.{:d}\n\nApplication is licensed under GPL v3\n\n"\
 			"To report issues or for support please send an email to airnef@hotmail.com - the email must "\
 			"include airnef-support in the title to be routed past my email spam filter.\n\n"\
 			"Special thanks to Joe FitzPatrick for his work on reverse engineering Nikon's Wifi interface\n\n"\
 			"Camera bitmap courtesy of rg1024 at https://openclipart.org/detail/20364/cartoon-camera\n\n"\
 			"Computer bitmap courtesy of lnasto at https://openclipart.org/detail/171010/computer-client\n\n"\
-			"Icon courtesy of Paomedia at https://www.iconfinder.com/icons/285680/camera_icon, licensed under Creative Commons (Attribution 3.0 Unported)".format(AIRNEF_APP_VERSION)))
+			"Icon courtesy of Paomedia at https://www.iconfinder.com/icons/285680/camera_icon, licensed under Creative Commons (Attribution 3.0 Unported)"\
+			.format(AIRNEF_APP_VERSION, sys.version_info.major, sys.version_info.minor, sys.version_info.micro)))
 		menubar.add_cascade(label="Help", menu=helpmenu)
 
 		root.config(menu=menubar)
@@ -595,13 +635,17 @@ class Application(Frame):
 		self.wizard_1_DisableBackNavigationButton()
 		
 		self.contentAreaLabel['text'] = "How would you like to choose which images to download?"
-	   
-		button = Button(self.contentFrame, image=self.getResource_Image("camera_button_200x134.gif"), compound=TOP, text="Select in Camera", bg=buttonBgColor, command=lambda : self.wizard_0_ButtonClick('select_in_camera'))
-		button.grid(column=0, row=0, sticky=W, ipady=25, ipadx=25, padx=110, pady=40)   
+		
+		leftFrame = Frame(self.contentFrame, bg=mainBgColor)	   
+		button = Button(leftFrame, image=self.getResource_Image("camera_button_200x134.gif"), compound=TOP, text="Select in Camera", bg=buttonBgColor, command=lambda : self.wizard_0_ButtonClick('select_in_camera'))
+		button.pack(side=LEFT, expand=1, ipadx=40, ipady=40 if not g.isOSX else 10, pady=30) # note001
+		leftFrame.pack(side=LEFT, fill=BOTH, expand=1)
 
-		button = Button(self.contentFrame, image=self.getResource_Image("computer_200x134.gif"), compound=TOP, text="Select on Computer", bg=buttonBgColor, command=lambda : self.wizard_0_ButtonClick('select_in_computer'))
-		button.grid(column=1, row=0, sticky=W, ipady=25, ipadx=25, padx=40, pady=40)
-
+		rightFrame = Frame(self.contentFrame, bg=mainBgColor)
+		button = Button(rightFrame, image=self.getResource_Image("computer_200x134.gif"), compound=TOP, text="Select on Computer", bg=buttonBgColor, command=lambda : self.wizard_0_ButtonClick('select_in_computer'))
+		button.pack(side=RIGHT, expand=1,  ipadx=40, ipady=40 if not g.isOSX else 10, pady=30) # note001
+		rightFrame.pack(side=RIGHT, fill=BOTH, expand=1)
+		
 		self.packContentFrame()
 		
 	def wizard_0_ButtonClick(self, str):
@@ -644,21 +688,38 @@ class Application(Frame):
 		if 'outputdir_history' in self.appConfigDict:
 			comboBox['values'] = self.appConfigDict['outputdir_history']
 		else:
-			cwdStr = os.getcwd()
+			# no saved directory in app config. select a default directory			
+			defaultDir = os.getcwd() # default to last resort of current working directory, which is usually our application
+			userFilesPath = None
+			
 			if g.isWin32:
-				# askdirectory() converts paths to unix style. while these work on Windows,
-				# they're confusing to see so convert it back
-				cwdStr = cwdStr.replace('/', '\\')
-			comboBox['values'] = [ cwdStr ]
+				if os.environ['HOMEDRIVE'] and os.environ['HOMEPATH']:
+					# user files path available
+					userFilesPath = os.path.join(os.environ['HOMEDRIVE'], os.environ['HOMEPATH'])
+			else:
+				if os.environ['HOME']:
+					# user files path available
+					userFilesPath = os.environ['HOME']
+			if userFilesPath:
+				userFilesPath = os.path.abspath(userFilesPath)
+				userPictureFilesPath = os.path.join(userFilesPath, 'Pictures')						
+				if os.path.exists(userPictureFilesPath):
+					# 'Pictures' exists, use it ('Pictures' is OSX and display folder name. For Win32 'My Pictures' goes to 'Pictures' as well
+					defaultDir = userPictureFilesPath
+				elif os.path.exists(userFilesPath):
+					# user files path exists, use it
+					defaultDir = userFilesPath
+				
+			comboBox['values'] = [ defaultDir ]
 		comboBox.current(0)
 		self.wizard_common_OutputDirComboBox = comboBox
 		button = Button(parentFrame, text="More choices", command=lambda : self.changeDownloadDirectory_ButtonClick())
 		return (label, comboBox, button)
 		
-	def createStartDownloadFrameAndButton_PackOnRightInParent(self, parentFrame, theCommand):
+	def createStartDownloadFrameAndButton_PackOnRightInParent(self, parentFrame, theCommand, buttonPady):
 		rightFrame = Frame(self.contentFrame, bg=mainBgColor)
 		button = Button(rightFrame, image=self.getResource_Image("wifi_200x134.gif"), compound=TOP, text="Start Download", bg=buttonBgColor, command=theCommand)
-		button.grid(column=0, row=0, rowspan=3, sticky=W, ipady=25, ipadx=25, padx=5, pady=20)
+		button.pack(side=TOP, fill=BOTH, expand=1, ipadx=40, ipady=40 if not g.isOSX else 10, padx=40, pady=buttonPady) # note001
 		rightFrame.pack(side=LEFT, fill=BOTH, expand=1)
 		return rightFrame
 		
@@ -745,7 +806,8 @@ class Application(Frame):
 		#		
 		
 		# button to start download
-		self.createStartDownloadFrameAndButton_PackOnRightInParent(self.contentFrame, lambda : self.wizard_1_0_ButtonClick('start_download_slected_in_camera'))
+		self.createStartDownloadFrameAndButton_PackOnRightInParent(self.contentFrame, lambda : self.wizard_1_0_ButtonClick('start_download_selected_in_camera'), 
+			30 if not g.isOSX else (60,90)) # note001
 
 		self.packContentFrame()		
 	
@@ -760,7 +822,7 @@ class Application(Frame):
 			self.wizard_BackNavigationToolbarButton = None
 						
 	def wizard_1_0_ButtonClick(self, str):
-		if str == 'start_download_slected_in_camera':
+		if str == 'start_download_selected_in_camera':
 		
 			#
 			# save options in app config, so that they will be defaults next time
@@ -771,7 +833,9 @@ class Application(Frame):
 			# ip address
 			self.appConfigDict['ip_address'] = self.toolbar_IpAdressEntry.get()
 			# logging level
-			self.appConfigDict['logging_level_choice'] = self.toolbar_LoggingLevelComboBox.get()			
+			self.appConfigDict['logging_level_choice'] = self.toolbar_LoggingLevelComboBox.get()
+			# realtime download
+			self.appConfigDict['realtime_download_choice'] = self.toolbar_RealtimeDownloadComboBox.get()
 			# output dir history. in addition to saving it we move the current selection to the front of the list (we keep list MRU to be intuitive)
 			self.setOutputDirListInAppConfig()
 			# if file exists action
@@ -789,6 +853,7 @@ class Application(Frame):
 			ipAddrStr = self.toolbar_IpAdressEntry.get()
 			if ipAddrStr:
 				argStr += " --ipaddress " + ipAddrStr
+			argStr += " " + RealtimeTransferUserReadableChoicesToAirnefCmdOtion[self.toolbar_RealtimeDownloadComboBox.get()]
 			argStr += " --logginglevel " + self.toolbar_LoggingLevelComboBox.get()
 			argStr += " --cameratransferlist exitifnotavail"
 			launchAirnefcmd(argStr)
@@ -825,15 +890,15 @@ class Application(Frame):
 		checkButton.grid(column=1, row=0, sticky=W, ipadx=0, pady=5)		
 		self.wizard_2_0_FileExt_JPG_IntVar = IntVar()
 		checkButton = Checkbutton(fileExtFrame, variable = self.wizard_2_0_FileExt_JPG_IntVar, onvalue = True, text="JPG")
-		checkButton.grid(column=2, row=0, sticky=W, ipadx=0, pady=5)
-		self.wizard_2_0_FileExt_TIF_IntVar = IntVar()
-		checkButton = Checkbutton(fileExtFrame, variable = self.wizard_2_0_FileExt_TIF_IntVar, onvalue = True, text="TIF")
-		checkButton.grid(column=3, row=0, sticky=W, ipadx=0, pady=5)
+		checkButton.grid(column=2, row=0, sticky=W, ipadx=0, pady=5)		
 		self.wizard_2_0_FileExt_MOV_IntVar = IntVar()
 		checkButton = Checkbutton(fileExtFrame, variable = self.wizard_2_0_FileExt_MOV_IntVar, onvalue = True, text="MOV")
-		checkButton.grid(column=4, row=0, sticky=W, ipadx=0, pady=5)
+		checkButton.grid(column=3, row=0, sticky=W, ipadx=0, pady=5)
 		self.wizard_2_0_FileExt_CR2_IntVar = IntVar()
 		checkButton = Checkbutton(fileExtFrame, variable = self.wizard_2_0_FileExt_CR2_IntVar, onvalue = True, text="CR2")
+		checkButton.grid(column=4, row=0, sticky=W, ipadx=0, pady=5)
+		self.wizard_2_0_FileExt_ARW_IntVar = IntVar()
+		checkButton = Checkbutton(fileExtFrame, variable = self.wizard_2_0_FileExt_ARW_IntVar, onvalue = True, text="ARW")		
 		checkButton.grid(column=5, row=0, sticky=W, ipadx=0, pady=5)
 		
 		
@@ -841,15 +906,15 @@ class Application(Frame):
 			fileTypeList = self.appConfigDict['file_exts']
 			self.wizard_2_0_FileExt_NEF_IntVar.set('NEF' in fileTypeList)
 			self.wizard_2_0_FileExt_JPG_IntVar.set('JPG' in fileTypeList)
-			self.wizard_2_0_FileExt_TIF_IntVar.set('TIF' in fileTypeList)
 			self.wizard_2_0_FileExt_MOV_IntVar.set('MOV' in fileTypeList)
 			self.wizard_2_0_FileExt_CR2_IntVar.set('CR2' in fileTypeList)
+			self.wizard_2_0_FileExt_ARW_IntVar.set('ARW' in fileTypeList)
 		else:		
 			self.wizard_2_0_FileExt_NEF_IntVar.set(True)
 			self.wizard_2_0_FileExt_JPG_IntVar.set(True)
-			self.wizard_2_0_FileExt_TIF_IntVar.set(True)
 			self.wizard_2_0_FileExt_MOV_IntVar.set(True)
 			self.wizard_2_0_FileExt_CR2_IntVar.set(True)
+			self.wizard_2_0_FileExt_ARW_IntVar.set(True)
 
 		label = Label(fileExtFrame, text="More: ", bg=mainBgColor)
 		label.grid(column=6, row=0)
@@ -896,7 +961,7 @@ class Application(Frame):
 		# media card choice
 		label = Label(leftFrame, text="Media Card:", bg=mainBgColor)
 		label.grid(column=0, row=3, sticky=E, pady=5)
-		comboBox = ttk.Combobox(leftFrame, values=CardSlotUserReadableChoices, state='readonly')
+		comboBox = ttk.Combobox(leftFrame, values=CardSlotUserReadableChoices, state='readonly', width=28)
 		if 'card_slot_choice' in self.appConfigDict:
 			comboBox.current(comboBox['values'].index (self.appConfigDict['card_slot_choice']))
 		else:
@@ -949,11 +1014,11 @@ class Application(Frame):
 		#
 		
 		# button to start download
-		rightFrame = self.createStartDownloadFrameAndButton_PackOnRightInParent(self.contentFrame, lambda : self.wizard_2_0_ButtonClick('start_download_slected_in_camera'))
+		rightFrame = self.createStartDownloadFrameAndButton_PackOnRightInParent(self.contentFrame, lambda : self.wizard_2_0_ButtonClick('start_download_selected_on_computer'), (35,10))
 		
 		# button to preview file list
 		button = Button(rightFrame, text="Preview File List for Criteria", command=lambda : self.wizard_2_0_ButtonClick('preview_file_list'))
-		button.grid(column=0, row=3, sticky=W, ipady=5, ipadx=15, padx=42)
+		button.pack(side=BOTTOM, expand=1, ipadx=5, ipady=5, padx=10, pady=(0,15))
 		
 		self.packContentFrame()
 		
@@ -984,7 +1049,7 @@ class Application(Frame):
 			
 	def wizard_2_0_ButtonClick(self, str):
 	
-		if str == 'start_download_slected_in_camera' or str == 'preview_file_list':
+		if str == 'start_download_selected_on_computer' or str == 'preview_file_list':
 		
 			#
 			# build file extension list and make sure it has at least
@@ -995,12 +1060,12 @@ class Application(Frame):
 				fileExtList.append('NEF')
 			if self.wizard_2_0_FileExt_JPG_IntVar.get() == True:
 				fileExtList.append('JPG')
-			if self.wizard_2_0_FileExt_TIF_IntVar.get() == True:
-				fileExtList.append('TIF')
 			if self.wizard_2_0_FileExt_MOV_IntVar.get() == True:
 				fileExtList.append('MOV')
 			if self.wizard_2_0_FileExt_CR2_IntVar.get() == True:
 				fileExtList.append('CR2')
+			if self.wizard_2_0_FileExt_ARW_IntVar.get() == True:
+				fileExtList.append('ARW')
 			fileExtMore = self.wizard_2_0_FileExtMoreEntry.get()				
 			if (not fileExtList) and (not fileExtMore):
 				tkMessageBox.showwarning("Selection Issue", "At least one file type must be checked/entered, otherwise there wont be anything to download :)")
@@ -1033,6 +1098,8 @@ class Application(Frame):
 			self.appConfigDict['ip_address'] = self.toolbar_IpAdressEntry.get()			
 			# logging level
 			self.appConfigDict['logging_level_choice'] = self.toolbar_LoggingLevelComboBox.get()
+			# realtime download
+			self.appConfigDict['realtime_download_choice'] = self.toolbar_RealtimeDownloadComboBox.get()
 			# action
 			self.appConfigDict['action_choice'] = self.wizard_2_0_ActionComboBox.get()
 			# file ext list from check boxes
@@ -1063,7 +1130,7 @@ class Application(Frame):
 			#
 			# generate command line and launch airnefcmd
 			#
-			if str == 'start_download_slected_in_camera':
+			if str == 'start_download_selected_on_computer':
 				argStr = ActionsUserReadableChoicesToAirnefCmdOption[self.wizard_2_0_ActionComboBox.get()]
 			else:
 				# 'preview_file_list'
@@ -1071,6 +1138,7 @@ class Application(Frame):
 			ipAddrStr = self.toolbar_IpAdressEntry.get()
 			if ipAddrStr:
 				argStr += " --ipaddress " + ipAddrStr
+			argStr += " " + RealtimeTransferUserReadableChoicesToAirnefCmdOtion[self.toolbar_RealtimeDownloadComboBox.get()]				
 			argStr += " --logginglevel " + self.toolbar_LoggingLevelComboBox.get()
 			argStr += " --extlist " + " ".join(fileExtList)
 			if fileExtMore:
@@ -1148,19 +1216,24 @@ def establishAppEnvironment():
 	# and configuration files. For Win32 if we're frozen this
 	# goes in the dedicated OS area for application data files
 	#
-	if g.isWin32 and g.isFrozen and os.getenv('LOCALAPPDATA'):
-		localAppDataAirnef = os.path.join(os.getenv('LOCALAPPDATA'), "airnef\\appdata") # typically C:\Users\<username>\AppData\Local\airnef\appdata
-		if not os.path.exists(localAppDataAirnef):
-			os.makedirs(localAppDataAirnef)
-		g.appDataDir = localAppDataAirnef
-	else:
+	g.appDataDir = None
+	if g.isFrozen and g.isWin32:
+		if os.getenv('LOCALAPPDATA'):
+			g.appDataDir = os.path.join(os.getenv('LOCALAPPDATA'), "airnef\\appdata") # typically C:\Users\<username>\AppData\Local\airnef\appdata
+	elif g.isOSX: # for OSX we always try to store our app data under Application Support
+		userHomeDir = os.getenv('HOME')
+		if userHomeDir:
+			applicationSupportDir = os.path.join(userHomeDir, 'Library/Application Support')
+			if os.path.exists(applicationSupportDir): # probably not necessary to check existence since every system should have this directory
+				g.appDataDir = os.path.join(applicationSupportDir, 'airnef/appdata')
+	if not g.appDataDir:
+		# none of runtime-specific cases above selected an app data directory - use directory based off our app directory
 		g.appDataDir = os.path.join(g.appDir, "appdata")
-	
-	
 	# create our app-specific subdirectories if necessary	
 	if not os.path.exists(g.appDataDir):
 		os.makedirs(g.appDataDir)
 		
+	
 #
 # main app routine
 #			

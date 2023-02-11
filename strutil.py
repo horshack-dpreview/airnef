@@ -17,6 +17,8 @@ import six
 from six.moves import xrange
 import struct
 from applog import *
+import sys
+import time
 
 def hexByte(value):
 	return "0x{:02x}".format(value)
@@ -34,6 +36,67 @@ def hexShortFromData(data):
 def hexWordFromData(data):
 	(word,)=struct.unpack('I',data[:4])
 	return hexWord(word)	
+
+#
+# inverts the endianness of a scalar (integer) value
+# 	
+def invertEndian(scalar):
+
+	# first convert scalar to a byte array
+	bytesPacked = struct.pack('=Q', scalar)
+	
+	#
+	# now unpack and invert endian by specifying struct.unpack()
+	# endian that is opposite of the native endian for the platform
+	# we're running on. I'm expecting all Python implementations
+	# to do endian inversions by byte swapping, so this method should
+	# be portable
+	#
+	if sys.byteorder == 'little':
+		# on little-endian platform. invert endian by specifying big endian
+		(value,) = struct.unpack('>Q', bytesPacked)
+	else:
+		# on big-endian platform. invert endian by specifying little endian
+		(value,) = struct.unpack('<Q', bytesPacked)
+	return value
+
+
+#
+# converts a string into a utf-16 byte array
+#
+def stringToUtf16ByteArray(str, fNullTerminated=False):
+	packedUtf16 = bytearray()
+	strAsBytes = bytearray(str, 'utf-8')
+	for i in xrange(len(str)):
+		packedUtf16 += struct.pack('<BB', strAsBytes[i], 0x00)
+	if fNullTerminated:
+		packedUtf16 += struct.pack('<BB', 0x00, 0x00)
+	return packedUtf16
+
+#
+# converts a string into a "counted" utf-16 byte array,
+# where the first byte of the array is the characters
+# count of the array including an optional null
+#	
+def stringToCountedUtf16(str, fNullTerminated=False):
+	return struct.pack('<B', len(str) + (1 if fNullTerminated else 0)) + stringToUtf16ByteArray(str, fNullTerminated)
+	
+
+#
+# returns a date/time string in mm/dd/yy hh:mm:ss format for specified
+# epoch time - if epoch time is None then returns date/time string for
+# current time
+#	
+def getDateTimeStr(timeEpoch=None, fMilitaryTime=False):
+	if timeEpoch == None:
+		timeEpoch = time.time()
+	timeStruct = time.localtime(timeEpoch)
+	if not fMilitaryTime:
+		timeStr = time.strftime("%m/%d/%y %I:%M:%S %p", timeStruct)
+	else:
+		timeStr = time.strftime("%m/%d/%y %H:%M:%S", timeStruct)
+	return timeStr
+	
 
 #
 # Generates string containing hex dump of a bytearray. Format is:
