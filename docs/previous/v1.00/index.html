@@ -1,0 +1,393 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>airnef - testcams.com</title>
+<style type="text/css">
+body {
+	background-color: #F0F0F0;
+}
+ul {
+	margin:0;
+}
+h2 {
+	color: #000099;
+}
+#popupImageDiv_1 {
+	position:absolute;
+	width:400px;
+	height:400px;
+	border:2px solid #000;
+	z-index: 1000;
+}
+ul.nobullets
+{
+    list-style: none;
+}
+</style>
+
+<script type="text/javascript">
+function getBrowserWidth() { // from http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+  if (self.innerHeight) {
+    return self.innerWidth;
+  }
+
+  if (document.documentElement && document.documentElement.clientHeight) {
+    return document.documentElement.clientWidth;
+  }
+
+  if (document.body) {
+    return document.body.clientWidth;
+  }
+}
+function getBrowserHeight() { // from http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+  if (self.innerHeight) {
+    return self.innerHeight;
+  }
+
+  if (document.documentElement && document.documentElement.clientHeight) {
+    return document.documentElement.clientHeight;
+  }
+
+  if (document.body) {
+    return document.body.clientHeight;
+  }
+}
+function popup(divName, clickEvent, aObj, imageWidth, imageHeight) {
+	var popUpDiv = document.getElementById(divName);
+	if (popUpDiv.style.display == 'none') {
+		//
+		// position the popup at the point of the mouse click, minus some for
+		// both x,y so that the mouse pointer is within the image area, allow
+		// the user to dismiss it with another click without having to move the mouse
+		//
+		//
+		// if the image wont fit within the browser window at the selected coordinates,
+		// move the coordinates so that it will fit
+		//
+		var browserWidth = getBrowserWidth()
+		var browserHeight = getBrowserHeight()
+		browserWidth -= 20 // some extra margin to make sure it fits without the user having to scroll
+		browserHeight -= 20 // some extra margin to make sure it fits without the user having to scroll
+		
+		var x = clickEvent.clientX-25	// -25 so that mouse is over image for an easy second click for user to dismiss
+		var y = clickEvent.clientY-25	// -25 so that mouse is over image for an easy second click for user to dismiss
+		if (x + imageWidth > browserWidth) {
+			// image would extend past right edge of browser window; adjust starting x position to make it fit
+			x -= (x + imageWidth) - browserWidth
+			x = Math.max(x, 0)
+		}
+		if (y + imageHeight> browserHeight) {
+			// image would extend past bottom edge of browser window; adjust starting y position to make it fit
+			y -= (y + imageHeight) - browserHeight
+			y = Math.max(y, 0)
+		}
+		// make coordinates relative to the full rendered page
+		x += document.body.scrollLeft + document.documentElement.scrollLeft
+		y += document.body.scrollTop + document.documentElement.scrollTop
+		// all done. set the coordinates in the div
+		popUpDiv.style.left = x + 'px';
+		popUpDiv.style.top = y + 'px';
+		
+		popUpDiv.style.width = imageWidth + 'px';
+		popUpDiv.style.height = imageHeight + 'px'
+		popUpDiv.style.height = aObj.height + 'px';	
+		popUpDiv.style.background = "url(" + aObj.href + ") white no-repeat";
+		popUpDiv.style.display = 'block'; // show
+	} else
+		popUpDiv.style.display = 'none'; // make invisible again
+	clickEvent.preventDefault(); // so that browser doesn't go to the top of the page for the "#" href
+}
+</script>
+</style>
+</head>
+
+<body>
+
+<div id="popupImageDiv_1" style="display:none;" onclick="popup('popupImageDiv_1', event); " width="100%" height="100%"></div>	
+
+  <table width="80%" border="0" cellpadding="10">
+    <tr>
+      <td width="64" height="104"><img src="airnef_64x64.png" alt="airnef logo" width="64" height="64"/></td>
+      <td width="1088"><h1 align="left">airnef - Wireless download from your Nikon Camera!</h1></td>
+    </tr>
+  </table>
+<p>This is the official homepage of Airnef, my open-source utility for downloading images and movies from your WiFi-equipped Nikon camera. Airnef runs on Windows, Mac, and Linux.  It supports all Nikon cameras that have built-in WiFi interfaces, along with those using  external Nikon WU-1a and WU-1b WiFi adapters. Airnef may also work with Nikon's WT-4A and WT-5A wireless adapters for the D3/D4/D8x, although I don't have any of these adapters on hand to test. Airnef  supports Canon cameras as well, although Canon supplies its own excellent <a href="http://www.usa.canon.com/cusa/consumer/standard_display/eos_utility" target="new">EOS Utility</a> for wireless downloads. Airnef is licensed under GPL v3.</p>
+<h2>Downloads</h2>
+<p>Airnef is written in the <a href="https://www.python.org/">Python</a> programming language and is distributed in both installable form (Windows and OS X, directory of binaries for Linux) and as a source tree that can execute on any platform supporting Python 2.7.x or 3.4.x. </p>
+
+<table width="1134" border="1" cellspacing="0">
+  <tr>
+    <td width="75"><div align="center"><strong>Dates</strong></div></td>
+    <td width="39"><div align="center"><strong>Ver</strong></div></td>
+    <td width="86"><div align="center"><strong>Change List</strong></div></td>
+    <td width="208"><div align="center"><strong>Windows Installer</strong></div></td>
+    <td width="179"><div align="center"><strong>OS X application</strong></div></td>
+    <td width="248"><div align="center"><strong>Linux Binary</strong></div></td>
+    <td width="269"><div align="center"><strong>Python Source Code</strong></div></td>
+  </tr>
+  <tr>
+    <td><div align="center">09/11/2015</div></td>
+    <td><div align="center">1.00</div></td>
+    <td><div align="center">N/A</div></td>
+    <td><div align="center"><a href="http://www.testcams.com/airnef/Version_1.00/airnef-installer-v1.0.exe">airnef-installer-v1.0.exe </a></div></td>
+    <td><div align="center"><a href="http://www.testcams.com/airnef/Version_1.00/airnef v1.00.dmg">airnef v1.00.dmg</a></div></td>
+    <td><div align="center"><a href="http://www.testcams.com/airnef/Version_1.00/airnef_v1.00_Linux_Binary.tar.gz">airnef_v1.00_Linux_Binary.tar.gz</a></div></td>
+    <td><div align="center"><a href="http://www.testcams.com/airnef/Version_1.00/airnef_v1.00_Source.zip">airnef_v1.00_Source.zip</a></div></td>
+  </tr>
+</table>
+<h2>Description</h2>
+<p>Airnef is two applications - a GUI front-end and a command-line app. The GUI front-end allows you to visually select the criteria of which images to download and then launches the command-line app to perform the transfer. You can optionally use the command-line version directly to script your transfers.</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Lro2sSHqP68" frameborder="0" allowfullscreen></iframe>
+<h2>Major Features</h2>
+<table width="900" border="0">
+  <tr>
+    <td><ul>
+      <li>One-button click to download all new images and video from the camera, selected on either the camera or computer by criteria</li>
+      <li>Fast downloads - Airnef uses optimized Media Transfer Protocol (MTP) parameters for sustained throughput around 2.5 MB/s</li>
+      <li> Remembers every file you've ever downloaded, automatically skipping those files in the future</li>
+      <li>Advanced local caching of MTP metadata allows for very fast click-to-download start times</li>
+      <li>Extensive criteria selection makes it easy to quickly choose which images to download, including by file type (NEF, JPG, MOV, etc...), starting and/or ending capture date, specific camera folders, and media card slot - in any combination. And Airnef will automatically skip over files you've already downloaded!</li>
+      <li>Lets you decide the order that files are downloaded, either oldest first or newest first. That way you can start working on the files you want right away instead of waiting for all the files to be downloaded</li>
+      <li>Fault-tolerant operation - Airnef will continuously retry any failed communication/transfer, resuming the download exactly where it left off, even in the middle of a file. This is important when downloading very large video files on marginal wireless connections</li>
+    </ul></td>
+  </tr>
+</table>
+<p><img src="airnef_screenshots_animation.gif" alt="airnef screen-shot animation" width="920" height="465"/></p>
+<h2>Articles about Airnef</h2>
+<p><a href="http://www.dslrbodies.com/accessories/software-for-nikon-dslrs/software-news/finally-desktop-wifi.html" target="new">Thom Hogan - Finally, Desktop WiFi</a></p>
+<p><a href="http://www.dpreview.com/articles/6089807566/airnef-brings-desktop-wi-fi-transfer-to-nikon-users" target="new">DPReview - Airnef brings desktop Wi-Fi transfer to Nikon users</a></p>
+<h2>Known Issues</h2>
+<ul>
+  <li>9/18/15 - Norton flags and quarantines the Airnef executable as   &quot;WS.Reputation.1&quot;. It appears Norton does this for all newly released   unsigned executables. You can get more information about this <a href="http://www.symantec.com/security_response/writeup.jsp?docid=2010-051308-1854-99">here</a> from Symantec. I've submitted a whitelist request; once  Symantec has processed it users will stop seeing this warning when they download Airnef.</li>
+  <li>9/18/15 - Any attempt to transfer files from a Nikon J5 fails with a &quot;Camera Command Failed: MTP_OP_OpenSession, Error: MTP_RESP_InvalidParamter&quot;. I don't have a J5 on hand to debug this but I'm working with J5 owners in hopes to remotely troubleshoot/resolve this issue<br />
+    
+  </li>
+</ul>
+<h2>Installation</h2>
+<h3>Windows Installer</h3>
+<ol>
+  <li>Download the Windows installer and launch it</li>
+  <li> The application is unsigned so you'll receive a <a href="airnef_windows_installer_UAC_warning.gif" width="475" height="268" onclick="popup('popupImageDiv_1', event, this, 475, 268)">warning from Windows</a> about it coming from an &quot;unknown publisher&quot;</li>
+  <li>Once the installer is running you'll be prompted to agree to the <a href="airnef_windows_GPLv3_license_agreement_prompt.gif" onclick="popup('popupImageDiv_1', event, this, 521, 407)">GPL v3</a> license.</li>
+  <li>You'll then be prompted for the installation directory, which defaults to C:\Program Files\airnef (32-bit Windows) or C:\Program Files (x86)\airnef (64-bit Windows)</li>
+  <li>A start-menu folder will be created under testcams.com, from which you can launch Airnef</li>
+</ol>
+<p>Here are a few post-installation Windows tips that will help make Airnef more convenient to use:</p>
+<ol>
+  <li><a name="windows_wireless_setup_tip"></a>There is a one-time wireless setup you can perform that will allow Windows to automatically switch to your camera's WiFi network whenever you turn your camera on and/or enable its WiFi. This is much more convenient than having to manually select the network every time you'd like to download images/videos from your camera. Here are the steps for the one-time setup:
+    <ol>
+      <li>Turn on your camera's WiFi feature and wait for the network to be listed in the available wireless network list. It should have a name prefixed with &quot;Nikon_&quot;, such as &quot;Nikon_WU2_52A670FB7F45&quot;. When you see the camera's network listed, click on the network and make sure 
+      <a href="airnef_windows_network_connect.gif" onclick="popup('popupImageDiv_1', event, this, 297, 440)">"Connect automatically" is checked</a>, then press "Connect" button.</li>
+      <li>Right-click the WiFi icon in the bottom-right system tray and select &quot;Open Network and Sharing Center&quot;, then click &quot;Manage wireless networks&quot; in the dialog that comes up. You'll be presented with a list of all the wireless networks you have ever connected to on your network. The list is sorted in order of connection priority, with the first item having the highest priority. Make sure the Nikon wireless network you just added is at the <a href="airnef_windows_network_order.gif" onclick="popup('popupImageDiv_1', event, this, 1112, 452)">top of the priority list</a>.</li>
+      <li>Even though you've made the Nikon network the highest priority, Windows will still connect to your main home/work wireless network when you don't have your camera powered on and its WiFi enabled. This is desirable. However, whenever you do turn on your camera and its WiFi to download images, by default Windows will not drop the connection to your home/work network and automatically switch to your camera's network. To have it automatically switch to your camera's WiFi network whenever it's available, right-click on your home/work network(s) and select 'Properties' from the pop-up menu. Then check the box <a href="airnef_windows_network_connect_to_preferred_if_available.gif" onclick="popup('popupImageDiv_1', event, this, 972, 528)">"Connect to a more preferred network if available"</a> and press OK to accept the changes. Now whenever you turn your camera's on and enable its WiFi your system will automatically switch to its network. Note that sometimes Windows will a while before automatically switching to the camera's network after it becomes available - you can expedite the process by clicking on the WiFi icon in the bottom-right system tray. This causes Windows to perform a network rescan immediately rather than waiting its normal polling interval.</li>
+    </ol>
+  </li>
+  <li>Whenever you'd like to cancel the current Airnef download/operation, press &lt;ctrl-c&gt; within the terminal window that airnefcmd is running. <strong>DO NOT click the &quot;X&quot; in that terminal window's title bar</strong> - doing this will cause airnefcmd to be terminated without properly cleaning up the resources and files it was processing.</li>
+</ol>
+<h3>OS X application (.dmg)</h3>
+<ol>
+  <li>Download the OS X .dmg and double-click it</li>
+  <li>The virtual disk image will be mounted and it should automatically open up to reveal the <a href="airnef_OSX_mounted_dmg.gif" onclick="popup('popupImageDiv_1', event, this, 584, 269)">Airnef application and a shortcut to your Applications folder</a>.</li>
+  <li>Drag and drop the Airnef application into the Applications shortcut icon.</li>
+  <li>The application is unsigned so you'll likely need to perform a one-time security override to permanently add the application to OS X's safe application list. You can do this by right-clicking (Control-Mouse Click) on the Airnef icon in <a href="airnef_OSX_right_click_open_app_for_security_override.gif" onclick="popup('popupImageDiv_1', event, this, 1037, 712)">your Applications folder</a> and selecting open.</li>
+  <li>Agree to open the application when prompted about it being <a href="airnef_OSX_accept_security_override.gif" onclick="popup('popupImageDiv_1', event, this, 441, 184)">downloaded from the internet</a>.</li>
+</ol>
+<p>Here are a few post-installation OS X tips that will help make Airnef more convenient to use:</p>
+<ol>
+  <li>When you tell the Airnef GUI to start downloading images it launches the airnefcmd application in a terminal window to perform the actual download. When airnefcmd has completed its downloads, OS X will by default leave the terminal window open, requiring you to manually close it. This can be annoying because you'll have to repeat this action after every download completion. Fortunately the OS X terminal app has a configurable setting which allows the terminal window to automatically close after a console app has completed. In the Terminal application, select 'Preferences' in the menu. In the dialog that opens, click 'Profiles' in the top left and then the 'Shell' tab. Set &quot;When the shell exits&quot; to either &quot;Close if the shell exited cleanly&quot; or &quot;Close&quot;. See <a href="airnef_OSX_terminal_app_autoclose_on_completion.gif" onclick="popup('popupImageDiv_1', event, this, 1246, 542)">this sample screen image</a> of the dialog to help you locate this option.</li>
+  <li>Whenever you'd like to cancel the current Airnef download/operation, press &lt;ctrl-c&gt; within the terminal window that airnefcmd is running. <strong>DO NOT click the &quot;X&quot; in that terminal window's title bar</strong> - doing this will cause airnefcmd to be terminated without properly cleaning up the resources and files it was processing.</li>
+</ol>
+<h3>Linux Binary</h3>
+<ol>
+  <li>The Linux binary ships in a compressed image that expands to directory tree of files, with the base directory expanding as ./airnef. You can unzip to your directory of choice and optionally add that directory/airnef to PATH</li>
+  <li>The GUI is airnef/airnef and the command-line utility is airnef/airnefcmd</li>
+</ol>
+<h3>Windows/OS X/Linux running Airnef source with installed Python interpreter</h3>
+<p>Instead of running the bundled Python environment that ships with the pre-built executables you can also run the source through your existing Python installation. Airnef supports both Python 2.7.x and 3.4.x environments.  OS X and most Linux distributions install Python by default. For Linux the Tkinter GUI framework may not come preinstalled; you can install it via &quot;sudo apt-get install python-tk&quot;. For Windows you'll need to <a href="https://www.python.org/downloads/" target="new">download</a> and install Python - I suggest enabling the option to add Python to your system path during the installation.</p>
+<h2>User's Guide (Graphical Interface)</h2>
+<p>The best resource for learning how to use Airnef is the Youtube tutorial linked at the top of this page.</p>
+<h3><strong>Basic Operation</strong></h3>
+<p>Airnef provides two basic methods for  selecting which images/movies to download - in the camera or on your computer. The benefit of selecting in the camera is that you can visually preview the images(s) first. The downside is that it's more cumbersome to select a large number of images. Also, some models limit the types of files you can select within the camera. For example the D7200 doesn't allow video files to be selected. Consumer-level cameras like the Nikon 1 J4  only let you select JPEGs. Fortunately both raw and video files can be downloaded on all camera models using the computer selection method within Airnef.</p>
+<p>Airnef is really two separate applications - a Graphical Interface (airnef) and a Command-Line program (airnefcmd). The graphical interface lets you to visually specify your download options, which are then passed to airnefcmd to perform the actual downloads. You can optionally use the command-line program directly, which enables you to script/automate your downloads. See the <a href="#command_line_reference">Command Line Reference</a> in this page for details.</p>
+<p>Airnef maintains a permanent download history of every file you transfer. Airnef uses this history to allow you to automatically skip over files you've already transferred, without having to specifically set a criteria that excludes those files. Airnef's default behavior is to skip files that are in its download history; you can override this behavior by un-checking the &quot;Skip images/movies you've previously downloaded&quot; option in each of the dialogs.</p>
+<p>Airnef remembers all the options you specified on your last download along with the last 32 directories you've used. These options are saved every time you start a download operation.</p>
+<h3><a name="IP_Address_Config"></a><strong>IP address</strong></h3>
+<h4>Nikon Cameras</h4>
+<p>By default your Nikon camera has an IP address of 192.168.1.1 and runs without encryption. You can modify both the IP address and wireless security via a one-time procedure using Nikon's Wireless Mobile Utility app (<a href="https://itunes.apple.com/us/app/wireless-mobile-utility/id554157010?mt=8" target="new">iOS</a> and <a href="https://play.google.com/store/apps/details?id=com.nikon.wu.wmau&amp;hl=en" target="new">Android</a>). Nikon has published instructions on modifying the security settings <a href="https://support.nikonusa.com/app/answers/detail/a_id/19240/~/how-to-secure-the-d750-wifi-connection-on-an-ios-smart-device." target="new">here</a>. Modifying the IP address of your camera is useful if you run a typical network configuration that has the router at 192.168.1.1, which conflicts with the camera and makes it impossible to use a wired connection to your router/Internet at the same time you'd like to download from the camera. Here are instructions for the one-time procedure to change your cameras IP address:</p>
+<ol>
+  <li>Install the Nikon Wireless Mobile Utility (WMU) app on your phone  (<a href="https://itunes.apple.com/us/app/wireless-mobile-utility/id554157010?mt=8" target="new">iOS</a> and <a href="https://play.google.com/store/apps/details?id=com.nikon.wu.wmau&amp;hl=en" target="new">Android</a>).</li>
+  <li>Turn your camera's WiFi on and then have your phone/tablet connect to that Network (Nikon's network usually starts with &quot;Nikon_&quot;, such as &quot;Nikon_WU2_52A670FB7F45&quot;</li>
+  <li>Run WMU and click the gear icon at the top-right of the <a href="Nikon_WMU_Main_Screen.gif" onclick="popup('popupImageDiv_1', event, this, 270, 480)">main screen</a> to get to the Settings page.</li>
+  <li>Click &quot;WMA Settings&quot; on the <a href="Nikon_WMU_Settings_Screen.gif" onclick="popup('popupImageDiv_1', event, this, 270, 480)">Settings Page</a>.</li>
+  <li>Click &quot;Advanced Settings&quot; on the <a href="Nikon_WMU_WMA_Settings_Screen.gif" onclick="popup('popupImageDiv_1', event, this, 270, 480)">WMA Settings Page</a>.</li>
+  <li>On the <a href="Nikon_WMU_WMA_AdvancedSettings_Screen.gif" onclick="popup('popupImageDiv_1', event, this, 270, 480)">Advanced Settings Page</a>, click on the DHCP Server IP address and change the subnet. For example, change it from the default of 192.168.1.1 to 192.168.2.1. Then click the DHCP client IP address and change it to the same subnet. For example, from 192.168.1.2 to 192.168.2.2.</li>
+  <li>You're done. Enter the new DHCP Server IP address in the Camera IP address field of Airnef (192.168.2.1 in this example).</li>
+</ol>
+<h4>Canon Cameras</h4>
+<p>On Canon cameras the ad hoc wireless the IP address is usually 192.168.1.2. Canon bodies also support wireless infrastructure mode, meaning the camera can use an existing wireless network rather than creating its own ad hoc network. For infrastructure mode Canon lets you specify a static IP address of the camera - use that option and then use the same IP address in Airnef.</p>
+<h3><strong>Selecting images in the camera</strong></h3>
+<ol>
+  <li>Click the &quot;Select in Camera&quot; button on the <a href="airnef_screen_main_wizard.gif" onclick="popup('popupImageDiv_1', event, this, 920, 465)">Main Application Dialog</a>, which will bring up the <a href="airnef_screen_select_in_camera_wizard.gif" onclick="popup('popupImageDiv_1', event, this, 926, 470)">Select in Camera</a> dialog.</li>
+  <li>On your camera, find the menu location where files can be selected for upload, which varies depending on model. You should look for the option that reads similar to &quot;Select for Upload&quot; or &quot;Select to send to smart device&quot; or &quot;Send to smartphone&quot;, etc... The Media Transfer Protocol (MTP) interface that Airnef uses to communicate with the cameras is principally oriented for sending images to smartphones, which is why you may need to look for the &quot;Send to smartphone&quot; option on your camera even though you'll be sending the images to your computer running Airnef. Some cameras also allow you to select images in the playback menu, including the Nikon D7200 and D750 - what's nice about these models is that the selections persist across camera power cycles, which means you can select images as you're shooting across multiple days and then use Airnef to download your selected images all at once.</li>
+  <li>Once you've located your camera's menu that allows choosing files to upload, select one or more files in the camera using the button shortcuts depicted on your camera's screen. For example on the Nikon D7200 the button is the zoom-out key; on the Nikon J4 it's the bottom button of the circular multi-selector.</li>
+  <li>When you've finished selecting which files to upload your camera will either let you proceed directly to enabling its WiFi  (Nikon J4 allows this by pressing the OK button on the multi-selector), or it may require you to enable the WiFi as a separate step (Nikon D7200). Use whichever method is available to enable the camera's WiFi</li>
+  <li>Once the camera's WiFi is enabled you should see its SSID in the available wireless networks on your computer. Nikon prefixes their SSID with &quot;Nikon_&quot;, for example &quot;Nikon_WU2_52A670FB7F45&quot;. Connect to the camera's network on your computer by selecting its SSID. Ideally you'd like to configure your computer to automatically connect to your camera's WiFi whenever it's available, although not every operating system may support this. Windows supports this - please read the <a href="#windows_wireless_setup_tip">wireless setup instructions</a> on this page for details.</li>
+  <li>In the 'Select in Camera' dialog,  set your output directory. The default directory is the one  specified when you last used Airnef. If this is the first time you're using Airnef then the default directory will be the Airnef application's directory. For Windows users make sure you don't use this directory because it's not writable without running Airnef with administrative privileges (<a href="http://blogs.technet.com/b/mrsnrub/archive/2010/08/11/uac-virtualization-allowing-standard-users-to-update-a-system-protected-area.aspx" target="new">details</a>), otherwise the files will go the a virtualized directory. Airnef remembers the most recent directories you've used in Airnef (up to 32), sorted by how recently you used each directory. If the directory you want is not already in the list you can click the 'More choices' button to summon a directory navigation dialog that will allow you to either navigate to your directory of choice or enter a directory path manually.</li>
+  <li>Set how you'd like Airnef to handle filename conflicts, ie what you'd like Airnef to do if it encounters  any files on your system with the same name as the ones you've selected to  download. By default Airnef will create a unique filename for any incoming files  whose names conflict with existing files.
+    The full options are:
+      <ul>
+      <li>generate unique filename - a unique filename will be generated by adding a -new-x suffix, where 'x' is the first non-used numerical suffix for files in the directory. For example, DSC_1256.NEF becomes DSC_1256-new-1.NEF. If that file also exists the name becomes DSC_1256-new-2.NEF, etc</li>
+      <li>overwrite file - existing file will be deleted at the start of the download</li>
+      <li>skip file - file will be skipped (not downloaded)</li>
+      <li>prompt for each file - you'll be prompt for the action to take for each filename conflict</li>
+      <li>exit - Airnef will terminate  </li>
+    </ul>
+  </li>
+  <li>By default Airnef will skip over images/movies you've downloaded from the camera on a previous session. You can override this behavior by un-checking the &quot;Skip images/movies you've previously downloaded&quot; option, which will cause Airnef to ignore its download history.</li>
+  <li>Click the 'Start Download' button to begin the transfer. Airnef will launch airnefcmd in its own terminal window - airnefcmd is the command-line utility that handles all communication with the camera, including the downloads. airnefcmd will report the progress of its operations in its terminal window, exiting when it's complete, or when it encounters what it believes is an unrecoverable error, or if you cancel the transfer by press &lt;ctrl-c&gt;</li>
+  <li>After airnefcmd exits, Airnef will display a transfer report that contains all the progress information generated by airnefcmd. For brevity the report excludes information about files that were skipped due to being in the download history (ie, files skipped because you previously downloaded them). If you'd like to see when the skipped files were previously downloaded and to what location, set the Logging: option to 'verbose' before clicking 'Start Download'</li>
+</ol>
+<h3><strong>Selecting images by criteria on the computer</strong></h3>
+<ol>
+  <li>Launch Airnef if you haven't already done so and click the &quot;Select on Computer&quot; button on the <a href="airnef_screen_main_wizard.gif" onclick="popup('popupImageDiv_1', event, this, 920, 465)">Main Application Dialog</a>, which will bring up the <a href="airnef_screen_select_on_computer_wizard.gif" onclick="popup('popupImageDiv_1', event, this, 926, 470)">Select on Computer</a> dialog.</li>
+  <li>By default Airnef will download every image/video file on the camera, except for those you've previously downloaded. The 'Select on Computer' dialog lets you to establish any combination of criteria that then limits which of those files get downloaded.</li>
+  <li>The 'File Types' section lets you choose which types of files are downloaded, based on the extension of the file. The built-in types are NEF, JPG, TIF, MOV, and CR2. If your camera supports a type not listed you can enter its extension in the 'More:' field that is positioned next to the built-in types.</li>
+  <li>The 'Capture Date' section lets you limit which files are downloaded based on a capture/acquisition date. You can choose from either the preselected set of dates (today, yesterday, past week, past month, past year), or enter a custom date range. For the custom date range you can enter a starting date, ending date, or both. Each date must be in the format of mm/dd/yy and include leading zeros - for example, &quot;05/02/12&quot;. You an optionally include a time specification as well, in the form of hh:mm:ss - for example, &quot;05/02/12 15:35:15&quot;. When you specify a starting date without a time, the time will be assumed to start from midnight. When you specify an ending date without a time, the time will assumed to end at 23:59:59. For example, a starting date of 04/05/12 and ending date of 04/10/12 will download all files captured on or after 04/05/12 at midnight and on or before 04/10/12 23:59:59.</li>
+  <li>The 'Media Card' section lets you specify which media card slot on the camera will be used as the source of the images to download. By default Airnef will use the first populated card slot it finds, starting from the first slot. You can optionally override this by specifying a particular slot.</li>
+  <li>The 'Download Order' option lets you to specify the chronological order  by which files are downloaded (by capture-date). The choices are oldest-first or newest-first. This option doesn't limit which files are downloaded, only the order by which they're downloaded. This is useful when you'd like to start working on more recently taken images/movies right away (as they download), rather than waiting for the download of all the files to complete.</li>
+  <li>The 'Output Directory' section lets you specify where the downloaded files will be placed. The default directory is the one  specified when you last used Airnef. If this is the first time you're using Airnef then the default directory will be the Airnef application's directory. For Windows users make sure you don't use this directory because it's not writable without running Airnef with administrative privileges (<a href="http://blogs.technet.com/b/mrsnrub/archive/2010/08/11/uac-virtualization-allowing-standard-users-to-update-a-system-protected-area.aspx" target="new">details</a>), otherwise the files will go the a virtualized directory. Airnef remembers the most recent directories you've used in Airnef (up to 32), sorted by how recently you used each directory. If the directory you want is not already in the list you can click the 'More choices' button to summon a directory navigation dialog that will allow you to either navigate to your directory of choice or enter a directory path manually.</li>
+  <li>The 'If File(s) Exist' section lets you specify how Airnef will handle  filename conflicts, ie what you'd like Airnef to do if it encounters  any files on your system with the same name as the ones you've selected to  download. By default Airnef will create a unique filename for any incoming files  whose names conflict with existing files.
+    The full options are:
+      <ul>
+        <li>generate unique filename - a unique filename will be generated by adding a -new-x suffix, where 'x' is the first non-used numerical suffix for files in the directory. For example, DSC_1256.NEF becomes DSC_1256-new-1.NEF. If that file also exists the name becomes DSC_1256-new-2.NEF, etc</li>
+        <li>overwrite file - existing file will be deleted at the start of the download</li>
+        <li>skip file - file will be skipped (not downloaded)</li>
+        <li>prompt for each file - you'll be prompt for the action to take for each filename conflict</li>
+        <li>exit - Airnef will terminate </li>
+      </ul>
+  </li>
+  <li>The 'Additional Args' section lets you specify additional command line arguments to be passed to airnefcmd. These can be options that allow for additional selection criteria and/or options that control the general operation of airnefcmd. See the <a href="#command_line_reference">Command Line Reference</a> section on this page for a full list of arguments.</li>
+  <li>The 'Skip images/movies you've previously downloaded' option allows you to control whether Airnef should skip (ie, not download) files you've previously downloaded from the camera.</li>
+  <li>With your criteria now set, you can either click 'Start Download' to perform the transfer or 'Preview File List for Criteria' if you'd first like to see a directory listing of files on the camera, filtered by your criteria. Note that the list will include files you've already downloaded even if you've checked the 'Skip images/movies you've previously downloaded' option; however, those files will not be re-downloaded once you click 'Start Download' (unless you've unchecked the option).</li>
+</ol>
+<h2><strong></strong>FAQ - Frequently Asked Questions</h2>
+<ul class="nobullets">
+  <li>Q: Sometimes during extended transfer sessions airnefcmd reports a MTP_RESP_StoreNotAvailable error and exits. Why is that?  </li>
+  <li>A: Cameras have a data-integrity mechanism that  disables access to their SD/CF cards when the battery is low. This is done to prevent incomplete writes in case the battery charge runs out while the camera is writing to a card.  </li>
+</ul>
+<h2><a name="command_line_reference"></a>Command Line Reference</h2>
+<h3><strong>airnefcmd.exe (Windows) or airnefcmd (Linux) or airnefcmd.py (Windows/OS X/ Linux running source through Python interpreter) [optional args]</strong></h3>
+<p>When run with no options Airnef's default behavior is to either download every image that has been selected for download by the user on the camera's playback menu or, if no images were selected on the camera, to download every image/movie file it finds on the first populated memory card in the camera located at IP address 192.168.1.1 (Nikon's default IP address), storing the files into the current directory and skipping any files downloaded on previous invocations. Any name collisions with existing files will be resolved by generating unique filenames by adding a -new-x suffix (for example, DSC_1575.nef becomes DSC_1575-new-1.nef, DSC_1575-new-2.nef, etc...). Optional command-line arguments can be added to set the criteria of which files to download, where they should be downloaded, how filename collisions should be resolved, and other general behavior of the application.</p>
+<h3><strong>Optional arguments:</strong></h3>
+<p><strong>--help</strong><br/>
+Prints a help display listing all the typical options supported</p>
+<p><strong>@filename</strong><br/> 
+Load additional arguments from a text file. In addition to any parameter files you specify, airnefcmd will always load a file named 'airnefcmd-defaultopts' in its working directory (if it exists). The parameters from the default file will be loaded first, allowing you to override them with parameters from your own files and those specified on the command line. All parameter files must be formatted so that each parameter word is on a separate line, which is a requirement of Python's argparse routine. For example:</p>
+<pre>	--action
+	getsmallthumbs
+	--extlist
+	NEF
+	JPG
+</pre>
+<p> <strong>--ipaddress</strong><br/> 
+  Specifies the IP address of the camera supporting the MTP-IP interface. For Nikon's ad hoc wireless this is always the default, 192.168.1.1. On Canon the ad hoc wireless address is usually 192.168.1.2. Canon also supports wireless infrastructure mode, where instead of the camera serving as a temporary WiFi access point it can use an existing wireless network - for this mode you can configure the camera to any IP address you'd like.</p>
+
+<p><strong>--action</strong> [getfiles | getlargethumbs | listfiles]<br/>
+What action to perform. The default action 'getfiles' will download the full-sized version of the files. 'getlargethumbs' will download the large thumbnail of each image/video. 'getsmallthumbs' will download the small thumbnail of each image/video. 'listfiles' will generate a directory listing of files on the camera, sorted by the --transferorder option.</p>
+
+<p><strong>--extlist </strong>[extension ...]<br/>
+Specifies which types of files (by extension) to download/list. The default is &lt;ALL&gt;, which will download/list every file found. Multiple extensions can be specified. Example: extlist NEF JPG MOV. In the unlikely case where a camera has downloadable files without extensions, include &lt;noext&gt; in the extlist to download those files as well.</p>
+
+<p><strong>--startdate and --enddate</strong> [mm/dd/yy] or [mm/dd/yy hh:mm:ss]<br/> 
+Selects the starting and/or ending creation-date criteria of files to download/list. There are two specifications supported - date-only or date+time. The dates/time is inclusive - any file created on or after startdate will be included; any file created on or before enddate will be included. Examples:</p>
+<blockquote>
+  <p><strong>--startdate 05/06/15</strong> (download all files created on or after 05/06/15 00:00:00)</p>
+  <p>	<strong>--enddate 09/07/15</strong> (download all files created on or before 09/07/15 23:59:59)</p>
+  <p><strong>--startdate 05/06/15 --endddate 09/07/15</strong> (download all files created on or after 05/06/15 00:00:00 and before 09/07/15 23:59:59)</p>
+  <p><strong>--startdate 05/06/15 15:05:10</strong> (download all files created on or after 05/06/15 3:05:10 PM)</p>
+</blockquote>
+<p> <strong>--outputdir </strong>[directory]<br/> 
+The directory to store the downloaded files. The directory must be preexisting. Put quotes around the directory if it contains spaces. Example: outputdir &quot;c:\My Documents&quot;. The default is the current working directory.</p>
+<p><strong>--ifexists</strong> [uniquename | skip | overwrite | prompt | exit]<br/> 
+  Specifies what action to take if a local file exists in the output directory matching a file to be downloaded. The default 'uniquename' will cause a unique filename to be generated by adding  -new-x suffix (for example, DSC_1575.nef becomes DSC_1575-new-1.nef, DSC_1575-new-2.nef, etc...). 'skip' will cause the file to be skipped and not downloaded - be careful when using this option without the --camerafolderinoutputdir option, because if the same root filename exists in multiple folders on the camera then this will cause the file in all folders but the first to be skipped. 'overwrite' will overwrite the local file with the downloaded file - the same caution as 'skip' applies regarding the same file in multiple camera directories. 'prompt' will present a choice of actions to take on the console (uniquename/skip/overwrite/prompt/exit). 'exit' will cause the application to terminate whenever an existing file with the same name as a download candidate is found - note that the existence check of a given file is performed just before the download begins.</p>
+<p><strong>--downloadhistory</strong> [skipfiles | ignore | clear]<br/>
+Controls how the file download history is handled for this invocation. Airnefcmd maintains a database of all files it has downloaded for a given camera model/serial number combination. Each file in the database is identified by the combination of its name, creation date, and size; these three elements together allow Airnef to guarantee against false positives/negatives of the history. The default 'skipfiles' will skip any file that is in the download history. 'ignore' will cause airnefcmd to ignore the download history for this invocation when deciding whether to download a given file - ie, it will download files even if they're in the download history. Note that the download history will still be updated for any files downloaded during '<strong>ignore</strong>' invocations; this allows the history to be utilized on future invocations when 'ignore' is not specified. 'clear' will delete the entire download history for the connected camera model/serial number at the start of execution; the download history will still be updated for any files downloaded during the session.</p>
+<p><strong>--onlyfolders</strong> [folder ...]<br/> 
+  List of folders 
+<strong></strong>on the camera from which to download from. Any downloadable file(s) found that <strong>are not in </strong>one of the list folders will not be downloaded/listed. Example: onlyfolders 100D7200 101D7200. The default is to download/list from any folder on the camera. In the unlikely case where a camera has downloadable files in the root directory, include &lt;root&gt; in the list to download those files as well.</p>
+<p><strong>--excludefolders</strong> [folder ...]<br/>
+List of folders on the camera from which to not download from. Any downloadable file(s) found that <strong>are in</strong> one of the list folders will not be downloaded/listed. The default is to not exclude any folders. In the unlikely case where a camera has downloadable files in the root directory, include &lt;root&gt; in the list to exclude the the download of those files as well.</p>
+<p><strong>--camerafolderinoutputdir</strong> [no | yes]<br/> 
+Determines whether downloaded images will be stored locally in a subdirectory named after the camera folder in which the image resides. For example, with an --outputdir of  &quot;c:\pics&quot; and --camerafolderinoutputdir yes, any files found in a camera folder named 100D7200 will be stored locally to c:\pics\100D7200. The default is not recreate the camera folder in the output directory for downloaded images.</p>
+<p><strong>--transferorder </strong>[oldestfirst | newestfirst]<br/>
+Controls the order of which files are downloaded/list, based on their creation dates. When 'oldestfirst' is specified the oldest file on the camera will be downloaded/listed first, then the next oldest, etc... When 'newestfirst' is specified the newest file on the camera will be downloaded first, then the next newest, etc...</p>
+<p><strong>--slot </strong>[firstfound | first | second]<br/>
+Determines which media slot/card on the camera will be selected to download/list files from. The default 'firstfound', which will select the first slot found populated with a media card. 'first' or 'second' will select the first or second slot respectively.</p>
+<p><strong>--cameratransferlist</strong> [useifavail | exitifnotavail | ignore]<br/> 
+  Controls how to manage a potential camera transfer list, which is the list created by the camera when the user selects  image(s) to download on the camera's playback menu. When airnefcmd runs it interrogates the camera to see if a transfer list exists; the cameratransferlist controls how airnefcmd is to respond to the existence or non-existence of this list. When 'useifavail' is specified airnefcmd will only download images within the transfer list, and will ignore all other selection criteria specified by the other command line options. The download history will still be utilized however, meaning any images previously downloaded will be ignored, depending on the setting of the downloadhistory option. When 'exitifnotavail' is specified airnefcmd will terminate if the camera's transfer list is empty (ie, there are no user-selected images for download). When 'ignore' is specified airnefcmd will ignore any potential transfer list on the camera and will instead download/list all images on the camera based on the criteria specified with the other command line options.</p>
+<p><strong>--logginglevel </strong> [normal | verbose | debug]<br/> 
+  The verbosity level of logging for an airnefcmd session. Airnef outputs its messages both to the console (stdout/stderr) and to a pair of logging files, named airnefcmd-log-last.txt (log messages from most recent session) and airnefcmd-log-lifetime.txt (log messages from all sessions). 'normal' indicates that only important/useful informational messages will be logged. These include messages such as the connected model/serial number of the camera and information about each file downloaded/listed. 'verbose' includes some additional messages, useful for instance when you'd like more information about why a particular file was not downloaded. 'debug' will include all developer-level messages and debug information, including hex dumps of all MTP-IP communication between the airnefcmd and the camera. The default logging level is 'normal'.</p>
+<h3><strong>Debug/Troubleshooting arguments:</strong></h3>
+<p>The following is a list of less common arguments that can be used when troubleshooting or debugging the operation of airnefcmd. These options are hidden from the --help display, to limit the clutter of options presented for normal use.</p>
+<p><strong>--connecttimeout </strong> &lt;seconds&gt;<br/> 
+The amount of time to wait for a TCP/IP socket connection to be established with the camera. The default is 10 seconds. When Nikon's ad hoc wireless network is ready the camera usually connects very quickly. However it may take a little longer if the user just enabled the WiFi option on the camera and/or just selected the network on his computer. Canon bodies usually take a bit longer to establish a connection, esp if its WiFi has been idle for some period of time.</p>
+<p><strong></strong><strong>--socketreadwritetimeout </strong> &lt;seconds&gt;<br/>
+The amount of time to wait for a single TCP/IP socket read/write request to complete. The default is 5 seconds.</p>
+<p><strong></strong><strong></strong><strong>--retrycount</strong> &lt;number&gt;<br/> 
+The number of full-cycle retries airnefcmd will perform before completing its configured action on all files. By &quot;full-cycle&quot; I mean the process of recovering from a failed transaction, which includes restarting the full MTP-IP session. The default is unlimited.</p>
+<p><strong>--retrydelaysecs</strong> &lt;number&gt;<br/>
+The number of seconds to pause between full-cycle retries. The default is 5 seconds. This value was chosen to allow some measure of time for the camera to reestablish its ad hoc wireless network; typically the camera will require a few retry cycles before it is ready for a new MTP-IP session after a failed attempt.</p>
+<p><strong>--printstackframes</strong> [no | yes]<br/>
+  Print stack frames for all exceptions. The default is to only print stack frames for programming exceptions, such as AssertionError, ValueError, etc..</p>
+<p><strong>---mtpobjcache</strong> [enabled | writeonly | readonly | verify | disabled]<br/> 
+  Controls the behavior of the MTP object info cache. Every file on the camera is represented by an MTP object that describes its attributes such as filename, date, size, type, etc.. Airnef retrieves the full list of object infos at the start of execution - this list is required to support the criteria filtering and date sorting features of the program. Some cameras take a long time to complete many MTP_OP_GetObjectInfo requests, accessing the media card for each request on-demand rather than using predictive read-ahead caching to anticipate the next MTP_OP_GetObjectInfo request. This can make repeated executions of airnefcmd slow. To avoid incurring this penalty for every invocation, airnefcmd caches the last list of object infos it obtained on a per model/serial number basis, storing the cache as a file in its local appdata directory. The default of 'enabled' enables the MTP object cache. The cache has mechanisms to ensure both the integrity and coherency of the cache, the latter of which requires algorithms to avoid cases where the cached copy of object infos can become stale relative to what's on the camera. The following options are used to verify and troubleshoot these mechanisms. 'writeonly' disables cache hits for this invocation but still enables writing the persistent cache file. 'readonly' enables cache hits for this invocation but disables updating th persistent cache file. 'verify' is the same as 'enabled' but will do a full coherency check of the cache - this involves performing a MTP_OP_GetObjectInfo for each object on the camera and verifying any cached copy against that information. 'disabled' will turn off the cache completely for this invocation.</p>
+<p><strong>---mtpobjcache_maxagemins</strong> [minutes]<br/> 
+  The MTP object info cache includes a timestamp of when it was last updated. This options controls how old the cache is allowed to be (ie, relative to its last update) before it is fully invalidated. The default is zero, which means no age limit. Any other value is an age limit in minutes.</p>
+<p><strong>---maxgetobjtransfersizekb</strong> [kilobytes]<br/> 
+The maximize request size for MTP_OP_GetPartialObject requests in kilobytes, which is the MTP request used to retrieve the full-size image/movie files. During Airnef development it was discovered that Nikon's MTP-IP implementation has a bug in its processing of MTP_OP_GetObject requests that cause transfers to get progressively slower and eventually lead to a complete halt of transfers, requiring the MTP session to be restarted to recover. It appears Nikon's firmware is committing internal memory for the entire object and eventually runs out of memory. The solution is to use MTP_OP_GetPartialObject, which allows the transfer of an object in separate segments rather than the full object as is done with MTP_OP_GetObject. This option sets the maximum size we request for each segment. The default is 1024 (1MB), which was empirically determined to be large enough to saturate Nikon's WiFi interface throughput while being small enough to avoid any memory issues in the camera. The actual request size may be further constrained by the --maxgetobjbuffersize parameter; for example, if the max transfer size is 1MB but the max buffer size is 256KB, the size of each MTP_OP_GetPartialObject transfer will be the smaller of the two, in this case 256KB. This parameter has no effect for --action getlargethumbs and --action getsmallthumbs since the MTP interface requires those to be obtained via MTP_OP_GetObject - those elements are typically very small and thus aren't sensitive to the Nikon issue related to large transfers.</p>
+<p><strong>---maxgetobjbuffersizekb</strong> [kilobytes]<br/>
+The maximum number of kilobytes we buffer across MTP_OP_GetPartialObject requests for a full-size image/movie file download before we flush the data. The default is 32768 (32MB). The value should be large enough to maximize throughput on the filesystem (although in most cases filesystem caches will ensure this through write caching) but small enough to limit airnefcmd's memory footprint.</p>
+<h2><strong></strong>Features Planned for Next Release</h2>
+<ul>
+  <li>A fully self-contained GUI app with visual selection of images to download</li>
+  <li>A file renaming scripting option to allow customized batched renaming of files during download</li>
+  <li>Potential support for <a href="http://dslrdashboard.info/dslrdashboardserver-ddserver/" target="new">DslrDashboardServer</a></li>
+  <li>Potential support for Sony cameras, pending investigation of Sony's MTP discovery mechanism</li>
+</ul>
+<h2>Developer Notes</h2>
+<p>For anyone interested in the ongoing progress of Airnef development, I've created a <a href="http://www.testcams.com/airnef/developer/" target="_self">developer notes</a> page.</p>
+<h2>GPL v3 License</h2>
+<pre>    airnef - Wirelessly download images and movies from your Nikon Camera
+    Copyright (C) 2015, testcams.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+</pre>
+<h2>
+  Credits</h2>
+<ul>
+  <li> Special thanks to Joe FitzPatrick <a href="https://nikonhacker.com/wiki/WU-1a" target="new">for his work on reverse-engineering Nikon's WiFi interface</a></li>
+  <li>Thanks to <a href="http://wingware.com" target="new">Wingware</a> for their support of the open-source community. I plan to start using their Python IDE/debugger to help with future Airnet development.</li>
+  <li>Camera bitmap courtesy of <a href="https://openclipart.org/detail/20364/cartoon-camera" target="new">'rg1024</a>' </li>
+  <li>Computer bitmap courtesy of '<a href="https://openclipart.org/detail/171010/computer-client" target="new">lnasto</a>' </li>
+  <li>WiFi icons/bitmaps courtesy of '<a href="https://openclipart.org/detail/191831/wifi-icon" target="new">neorg</a>' and '<a href="https://openclipart.org/detail/166617/wireless" target="new">MrTossum</a>'</li>
+  <li>Camera Icon courtesy of '<a href="https://www.iconfinder.com/icons/285680/camera_icon" target="new">Paomedia</a>', licensed under Creative Commons (Attribution 3.0 Unported)
+  </li>
+</ul>
+
+
+<h2>Support </h2>
+<p>To report issues or for help, please visit the <a href="http://testcams.com/blog/forums/forum/airnef-wireless-download-from-your-nikon-camera/" target="_self">Airnef discussion forum</a></p>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Airnef Change List</title>
+</head>
+
+<body>
+ <h1>Airnef v1.1 (released 10/09/15) </h1>
+<h2>Major New Features</h2>
+<ul>
+   <li>Realtime downloads - transfers images from your camera as you shoot them</li>
+   <li>Sony camera support</li>
+   <li>Renaming engine - allows you to customize the names of directories and files for images you download</li>
+   <li>Download exec feature - optionally launch your favorite image viewing or editing application for each file downloaded</li>
+   <li>Automatically determines the IP address on cameras  that support the <a href="https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol" target="new">Simple Service Discovery Protocol (SSDP)</a>, making it easier for users to get connected to their cameras without having to know the technical details of their camera's network configuration. Canon and Sony cameras support SSDP. Nikon does not.</li>
+</ul>
+<h2>Minor New Features</h2>
+<ul>
+  <li>Automatically synchronizes the camera's time to the system's time each time airnefcmd is executed. This is supported on Nikon and Canon bodies.</li>
+  <li>Support for downloading from both media cards in one session (for cameras with dual-card support)</li>
+</ul>
+<h2>Bug Fixes</h2>
+<ul>
+  <li>Fixed support for the Nikon J5 and Nikon P900 cameras</li>
+  <li>Application window now properly resizes to fit on systems with larger system font sizes</li>
+  <li>Fixed the download progress reporting so that 100% is displayed when the download is done instead of 99%.</li>
+  <li>Fixed a parsing issue of the 'Additional Args' field in the GUI that required users to enter double-blackslashes for any paths.</li>
+  <li>Default download directory for new Airnef installation will now point to the user's Photos/Pictures directory instead of the Airnef application directory, where files were either unwritable without administrative privileges (Windows, which in turn stored the images in the virtual vault alias for the 'Program Files' directory ) or hard to find in the application bundle (OSX). </li>
+  <li>airnefcmd wasn't generating sentinel log/transfer report message when exiting due to a command-line error. This caused the GUI to mistakenly report that airnecmd was terminated uncleanly.</li>
+  <li>Improved source-level compatibility with Python 3.x - there were several code paths in both the GUI code (airnef.pyw) and CLI (airnefcmd.py) that didn't execute correctly under 3.x</li>
+</ul>
+<h2>Minor Changes</h2>
+<ul>
+  <li>Changed the Windows uninstaller to allow airnef's user data to be retained across upgrades (data is stored in %localappdata%\airnef). This includes data such as the user's download history, log files, and MTP object cache. The user is now prompted whether he wishes to retain the data. The v1.00 uninstaller unconditionally deletes the airnef user data so the v1.1 installer was also modified to automatically backup and restore the user data when uninstalling V1.00 during v1.1 installation (upgrade path).</li>
+  <li>For OSX the location of user data was moved out of the application bundle and into the user's home directory (~/Library/Application Support/airnef). This allows the user data to be retained across upgrades because upgrading requires overwriting the existing airnef application bundle. To support the migration of user data for a v1.00 - &gt; v1.1 upgrade a script is included in the v1.1 DMG to move the user data out of the v1.00 bundle and into its new location in the user's home directory.</li>
+  <li>When presenting the transfer report the GUI will now automatically scroll to the end of the report, which is most likely to contain information interesting to the user.</li>
+  <li>The TIF checkbox for File Types in the GUI 'Select on Computer' screen was replaced with ARW, to support easy criteria selection of raw files for Sony cameras.</li>
+  <li>The unique identifier (<a href="https://en.wikipedia.org/wiki/Globally_unique_identifier" target="new">GUID</a>) that Airnef presents to cameras at the start of a transfer session has changed. This was necessary as part of the Sony camera support. For Canon users this change will require you to re-create your network configuration set if you used the camera with v1.00 - this is because Canon associates the GUID of the wireless utility (Airnef in this case) with the camera's wireless configuration so the camera will reject the connection request from airnef v1.1 when used with a wireless configuration that was established with airnef v1.00</li>
+  <li>The download history database now includes the local path of where the downloaded files were stored, whereas v1.00 only stored the filename. As before, the download history information is presented for --logginglevel verbose invocations of the app.</li>
+  <li>The final airnefcmd sentinel log message &quot;&gt;&gt;&gt;&gt; airnecmd session over ....&quot; is no longer echoed to the console, which makes it easier to discern the final output the invocation. The message is still reported in the session log file.</li>
+</ul>
+<h2>New Command Line Options</h2>
+<ul>
+  <li>Fixed support for the Nikon J5 and Nikon P900 cameras</li>
+  <li><a href="index.html#cl_arg_file">!filename</a> (changed from '@filename' to '!filename')</li>
+  <li><a href="index.html#cl_ipaddress">--ipaddress</a> (&quot;auto&quot; optoin added)</li>
+  <li><a href="index.html#cl_realtimedownload">--realtimedownload</a></li>
+  <li><a href="index.html#cl_slot">--slot</a> (&quot;both&quot; option added)</li>
+  <li><a href="index.html#cl_filenamespec">--filenamespec</a></li>
+  <li><a href="index.html#cl_dirnamespec">--dirnamespec</a></li>
+  <li><a href="index.html#cl_downloadexec">--downloadexec</a></li>
+  <li><a href="index.html#cl_realtimepollsecs">--realtimepollsecs</a></li>
+  <li>    <a href="index.html#cl_initcmdreq_guid">--initcmdreq_guid</a></li>
+  <li><a href="index.html#cl_initcmdreq_hostname">    --initcmdreq_hostname</a></li>
+  <li>    <a href="index.html#cl_initcmdreq_hostver">--initcmdreq_hostver</a></li>
+  <li>    <a href="index.html#cl_opensessionid">--opensessionid</a></li>
+  <li>    <a href="index.html#cl_maxclockdeltabeforesync">--maxclockdeltabeforesync</a></li>
+  <li>    <a href="index.html#cl_camerasleepwhendone">--camerasleepwhendone</a></li>
+  <li>    <a href="index.html#cl_sonyuniquecmdsenable">--sonyuniquecmdsenable</a></li>
+  <li>    <a href="index.html#cl_suppressdupconnecterrmsgs">--suppressdupconnecterrmsgs</a></li>
+  <li>    <a href="index.html#cl_rtd_pollingmethod">--rtd_pollingmethod</a></li>
+  <li>    <a href="index.html#cl_rtd_mtppollingmethod_newobjdetection">--rtd_mtppollingmethod_newobjdetection</a></li>
+  <li>    <a href="index.html#cl_rtd_maxsecsbeforeforceinitialobjlistget">--rtd_maxsecsbeforeforceinitialobjlistget</a></li>
+  <li>    <a href="index.html#cl_ssdp_discoveryattempts">--ssdp_discoveryattempts</a></li>
+  <li>    <a href="index.html#cl_ssdp_discoverytimeoutsecsperattempt">--ssdp_discoverytimeoutsecsperattempt</a></li>
+  <li>    <a href="index.html#cl_ssdp_discoveryflags">--ssdp_discoveryflags</a></li>
+  <li>    <a href="index.html#cl_ssdp_addmulticastif">--ssdp_addmulticastif</a></li>
+  <li>    <a href="index.html#cl_ssdp_addservice">--ssdp_addservice</a></li>
+</ul>
+<h2>Technical Changes/Minor Fixes</h2>
+<ul>
+  <li>Removed 1-second delay between MTP_TCPIP_REQ_INIT_CMD_REQ and MTP_OP_OpenSession, which previously was necessary to avoid hangs on Nikon cameras. This delay was replaced with a MTP_TCPIP_REQ_PROBE on the event socket, which appears to avoid the hang issue and is much faster than a dead delay. A he delay was found to still be necessary if we attempt to close the MTP session within 1 second of opening it, so logic was added to make sure at least one second has elapsed before closing the session.</li>
+  <li>Convert single-argument command line values to lowercase (except where it didn't make sense). This allows the argument values to be case-insensitive. The argument names themselves are still case sensitive.</li>
+  <li>Convert all multi-argument command line values to uppercase to make them case-insensitive. This only affects the --onlyfolders and --excludefolders options. --extlist was already being converted to uppercase in v1.00</li>
+  <li>Added the OS platform and Python version to airnefcmd's startup banner and the Python version to the GUI's about box, to help with troubleshoot field issues related to different platforms/python versions. Also included the banner in the OSX wrapper module, which will help identify any issues with users running older versions of Python/OSX.</li>
+  <li>The Windows installer script was modified to remove the superfluous<strong> </strong>quotes around the DisplayVersion and Publisher values of the uninstall key.</li>
+  <li>Added logic to detect a user's in-camera deletion of a file that are actively being downloaded by airnefcmd. When detected airnef will report the detected deletion and move on to the next file. Only Canon cameras seem to support allowing the user to browse and delete files during an active MTP session. Graceful detection/recovery from this deletion is useful for the realtime download support on Canon bodies (allows users to delete images in the camera without concern for breaking airnef)</li>
+  <li>The organization of the MTP Object Info retrieval mechanism was modularized to support the realtime download mechanism. It now supports automatically recursing the camera folder directory tree for a given MTP file object, which allows the discovery of directories for use in any camera directory-specific command line option such as --onlyfolders, --excludefolders...without having to retrieve the entire MTP object list. This feature is used for the '--realtimedownload only' logic to support immediate transitions into the realtime phase without the time-consuming step of retrieving the MTP object list first.</li>
+  <li>Suppression of duplicate connection error messages while airnef is in its loop waiting for a camera to respond to a connection attempt. This prevents the log from filling up with connection failure reports, which is particularly important for the realtime download feature which allows the user to turn the camera's WiFi on/off at his discretion to decide when to transfer images from the camera.</li>
+  <li>Added logic to catch all exceptions when attempting to load the MTP object cache instead of trying to only catch the exceptions expected as part of the cache loading deserialization. This change was necessary because the Python pickle module throws an AttributeError when the OSX version attempts to load the MTP cache created by the installable version of Airnef vs a user running Airnef from source via the Python interpreter. This was not possible in v1.00 since the user data was stored in the application bundle for the installable version and in the working directory for the source version; in v1.1 all Airnef invocations on OSX will use the new data location off the user's home directory.</li>
+  <li>Enhanced the functioning of the MTP object cache to selectively bypass overwriting the cache during a session in which only a subset of the MTP object infos were downloaded, such as for the select-in-camera functionality. This allows the cache to be utilized on a future session, whereas in v1.00 the cache would be overwritten by the subset and then be unavailable when the full MTP object list was needed again.</li>
+  <li>When an active MTP command is interrupted by SIGINT (ctrl-c), the mtpwifi module will now set a flag that will prevent any further communication to the camera during that MTP session, specifically the MTP_OP_CloseSession that is issued by the SIGINT cleanup logic. This change avoids the extra delay of attempting to close the session when the camera is not in the state to accept the close session, specifically because the previous MTP command is still in progress as far as the camera is concerned. It also avoids the memory exception that might occur (hidden from user) when mtpwifi would attempt to issue the MTP_OP_CloseSession but would receive data from the interrupted MTP command instead, causing it to misinterpret that data as a preamble count and attempt to create an excessively large buffer as a result.</li>
+</ul>
+<h1>Airnef v1.1 (released 09/11/15) </h1>
+<p>Initial Release</p>
+</body>
+</html>
